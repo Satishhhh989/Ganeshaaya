@@ -1,9 +1,20 @@
 import { useProgress } from '@react-three/drei';
 import { useEffect, useState } from 'react';
+import { useGameState } from '../../core/GameState';
 
 export function LoadingScreen() {
   const { active, progress } = useProgress();
+  const { currentScene } = useGameState();
   const [isDone, setIsDone] = useState(false);
+
+  const sceneText =
+    currentScene === 'SHIVA_SEQUENCE'
+      ? { title: 'Mount Kailash', subtitle: 'Preparing 3D peaks & sacred threshold...' }
+      : currentScene === 'NIAT_COMPETITION'
+      ? { title: 'NIAT Championship', subtitle: 'Preparing 3D auditorium & stage...' }
+      : currentScene === 'PANDAL'
+      ? { title: 'Ganesh Chaturthi Pandal', subtitle: 'Preparing community courtyard & sacred altar...' }
+      : { title: 'Entering Home', subtitle: 'Preparing 3D living room & family environment...' };
 
   useEffect(() => {
     if (!active && progress === 100) {
@@ -51,26 +62,27 @@ export function LoadingScreen() {
 
       <h2
         style={{
-          fontFamily: "'Cinzel', serif",
+          fontFamily: "'Cinzel', 'Marcellus', serif",
           color: '#fdf3e2',
           fontSize: '1.4rem',
-          letterSpacing: '0.12em',
+          letterSpacing: '0.14em',
           marginBottom: '8px',
+          textTransform: 'uppercase',
         }}
       >
-        ENTERING HOME
+        {sceneText.title}
       </h2>
 
       <p
         style={{
           fontFamily: "'Outfit', sans-serif",
-          color: 'rgba(245, 238, 220, 0.55)',
+          color: 'rgba(245, 238, 220, 0.65)',
           fontSize: '0.85rem',
           letterSpacing: '0.06em',
           marginBottom: '28px',
         }}
       >
-        Preparing 3D environment & character animations...
+        {sceneText.subtitle}
       </p>
 
       {/* Progress Bar Container */}

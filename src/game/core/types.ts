@@ -1,4 +1,4 @@
-export type GameStateType = 'MENU' | 'PLAYING' | 'DIALOGUE' | 'PAUSED' | 'LOADING';
+export type GameStateType = 'MENU' | 'PLAYING' | 'DIALOGUE' | 'PAUSED' | 'LOADING' | 'GAME_COMPLETE';
 
 export type PresentScenePhase =
   | 'APPROACH'
@@ -7,7 +7,71 @@ export type PresentScenePhase =
   | 'OLD_MAN_SITTING'
   | 'CHILD_WALKING_SOFA'
   | 'CHILD_SITTING'
-  | 'STORY_MODE';
+  | 'STORY_MODE'
+  | 'TRANSITION_TO_MYTHOLOGY'
+  | 'RETURN_TO_PRESENT'
+  | 'TIME_PASSAGE'
+  | 'ADULT_PROTAGONIST'
+  | 'ANNUAL_FESTIVAL_MONTAGE'
+  | 'CURRENT_YEAR'
+  | 'FINANCIAL_PROBLEM'
+  | 'COMPETITION_DISCOVERY'
+  | 'GAME_DEVELOPMENT_READY'
+  | 'GAME_DEVELOPMENT'
+  | 'COMPETITION_READY'
+  | 'COMPETITION'
+  | 'COMPETITION_WIN'
+  | 'PRIZE_RECEIVED'
+  | 'PANDAL_READY'
+  | 'PANDAL_BUILDING'
+  | 'PANDAL_COMPLETE'
+  | 'GANESH_CHATURTHI_READY'
+  | 'FESTIVAL_PREPARATION'
+  | 'GANESH_CHATURTHI_CELEBRATION'
+  | 'FINAL_CINEMATIC'
+  | 'GAME_COMPLETE';
+
+export type PandalTask =
+  | 'STRUCTURE'
+  | 'ROOF'
+  | 'CLOTH'
+  | 'STAGE'
+  | 'FLOWERS'
+  | 'RANGOLI'
+  | 'LIGHTS'
+  | 'FINAL_DECORATION'
+  | 'PANDAL_STRUCTURE'
+  | 'PANDAL_ROOF'
+  | 'PANDAL_CLOTH'
+  | 'STAGE_DECORATION'
+  | 'FLOWER_DECORATION';
+
+export type GameDevState =
+  | 'NOT_STARTED'
+  | 'GAME_PROJECT_STARTED'
+  | 'GAME_CONCEPT_CREATED'
+  | 'GAME_PROTOTYPE_CREATED'
+  | 'GAME_PROTOTYPE_PLAYABLE'
+  | 'GAME_POLISHED'
+  | 'GAME_SUBMITTED';
+
+export type ShivaStoryPhase =
+  | 'SHIVA_SEQUENCE_READY'
+  | 'SHIVA_INTRO'
+  | 'SHIVA_GAMEPLAY'
+  | 'SHIVA_APPROACH'
+  | 'CONFRONTATION'
+  | 'TRISHUL_CINEMATIC'
+  | 'GANESHA_AFTERMATH'
+  | 'RESTORATION_READY'
+  | 'SHIVA_SEARCH'
+  | 'ELEPHANT_ENCOUNTER'
+  | 'DIVINE_TRANSITION'
+  | 'DIVINE_RESTORATION'
+  | 'GANESHA_DIVINE_AWAKENING'
+  | 'FAMILY_REUNION'
+  | 'DIVINE_BLESSING'
+  | 'RETURN_TO_PRESENT_READY';
 
 export type SceneId = 
   | 'PRESENT_HOME'
@@ -15,6 +79,7 @@ export type SceneId =
   | 'GANESHA_STORY'
   | 'SHIVA_SEQUENCE'
   | 'RESTORATION'
+  | 'NIAT_COMPETITION'
   | 'PANDAL'
   | 'CELEBRATION';
 
@@ -47,6 +112,7 @@ export interface InteractionTarget {
   position: [number, number, number];
   radius: number;
   prompt: string;
+  label?: string;
   actionKey?: string;
   onInteract: () => void;
   enabled?: boolean;

@@ -209,35 +209,56 @@ export function DialogueBox() {
           )}
         </p>
 
-        {/* Continue indicator */}
+        {/* Explicit Clickable Next Button */}
         <div
           style={{
             display: 'flex',
             justifyContent: 'flex-end',
             alignItems: 'center',
-            gap: '8px',
-            marginTop: '14px',
-            color: 'rgba(245, 238, 219, 0.6)',
-            fontSize: '13px',
-            letterSpacing: '0.03em',
+            marginTop: '16px',
           }}
         >
-          <span>
-            {isTyping
-              ? 'Click to Skip'
-              : dialogueIndex + 1 === activeDialogue.lines.length
-              ? 'Press [Space] or Click Next →'
-              : 'Press [Space] or Click to Continue'}
-          </span>
-          <span
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAdvance();
+            }}
             style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: 'rgba(224, 106, 32, 0.22)',
+              border: '1px solid rgba(245, 176, 65, 0.7)',
+              borderRadius: '20px',
+              padding: '8px 20px',
+              color: '#ffffff',
+              fontFamily: "'Marcellus', serif",
               fontSize: '14px',
-              color: '#e06a20',
-              animation: 'bounceIndicator 1.2s infinite ease-in-out',
+              fontWeight: 600,
+              letterSpacing: '0.06em',
+              cursor: 'pointer',
+              boxShadow: '0 4px 16px rgba(224, 106, 32, 0.25)',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(224, 106, 32, 0.45)';
+              e.currentTarget.style.borderColor = '#f5ca75';
+              e.currentTarget.style.transform = 'scale(1.04)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(224, 106, 32, 0.22)';
+              e.currentTarget.style.borderColor = 'rgba(245, 176, 65, 0.7)';
+              e.currentTarget.style.transform = 'scale(1)';
             }}
           >
-            ▼
-          </span>
+            <span>
+              {isTyping
+                ? 'Skip Typing ↷'
+                : dialogueIndex + 1 === activeDialogue.lines.length
+                ? 'Proceed to Story ➔'
+                : 'Next ➔'}
+            </span>
+          </button>
         </div>
       </div>
 

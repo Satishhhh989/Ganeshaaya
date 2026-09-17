@@ -8,12 +8,11 @@ export const ASSET_CONFIG = {
   characters: {
     child: {
       url: '/assets/characters/child.glb',
-      // child.glb has a scene height of 3.478m (raw mesh 1.817m * root node matrix 1.914m).
-      // Scale 0.344 gives an authentic child height of 1.20m (~73.6% of Dada's 1.63m height),
-      // reaching naturally to Dada's upper chest / shoulders.
+      // child.glb scene height ~3.478m. Scale 0.344 → ~1.20m child height
+      // Reaches naturally to Dada's upper chest/shoulders (~73.6% of Dada's 1.63m)
       scale: 0.344,
       defaultHeight: 1.20,
-      colliderRadius: 0.21,
+      colliderRadius: 0.22,
       animations: {
         idle: 'mixamo.com',
         walk: 'walk',
@@ -21,9 +20,9 @@ export const ASSET_CONFIG = {
     },
     oldMan: {
       url: '/assets/characters/old_man.glb',
-      // Scaled by 0.1063 so the raw 15.5m model becomes a realistic 1.63m height
+      // old_man.glb raw height ~15.52m. Scale 0.1063 → ~1.65m realistic old man
       scale: 0.1063,
-      defaultHeight: 1.63,
+      defaultHeight: 1.65,
       animations: {
         idle: 'sit',
         sit: 'sit',
@@ -33,26 +32,27 @@ export const ASSET_CONFIG = {
     },
   },
   staging: {
-    // Deliberate initial standing positions
-    oldManStanding: [-0.35, 0.0, 3.85] as [number, number, number],
-    childSpawn: [0.65, 0.0, 5.05] as [number, number, number],
-    // Predefined scripted sofa sitting markers
-    oldManSittingMarker: [-0.44, 0.0, 2.75] as [number, number, number],
-    childSittingMarker: [0.08, 0.0, 2.75] as [number, number, number],
+    // Deliberate standing positions in the living room
+    oldManStanding: [-0.3, 0.0, 3.7] as [number, number, number],
+    childSpawn: [0.6, 0.0, 5.2] as [number, number, number],
+    // Scripted sofa sitting markers — Y=0.0 because the sit animation handles the height offset
+    oldManSittingMarker: [-0.4, 0.0, 2.6] as [number, number, number],
+    childSittingMarker: [0.15, 0.0, 2.6] as [number, number, number],
     // Proximity trigger radius for opening conversation
-    interactionRadius: 1.45,
+    interactionRadius: 3.2,
   },
   environments: {
     home: {
       url: '/assets/environments/home.glb',
       scale: 1.0,
       floorY: 0.0,
-      // Room boundaries [minX, maxX, minZ, maxZ]
+      // Room boundaries matching actual home.glb geometry
+      // Actual bounds: min=[-8.34, -0.01, -11.17] max=[5.02, 4.78, 10.06]
       bounds: {
-        minX: -6.8,
-        maxX: 6.8,
-        minZ: -9.6,
-        maxZ: 9.8,
+        minX: -4.6,
+        maxX: 4.6,
+        minZ: -8.0,
+        maxZ: 9.0,
       },
     },
   },

@@ -7,17 +7,17 @@ export const OPENING_DIALOGUE: DialogueSequence = {
     {
       id: 'line_1',
       speaker: 'Child',
-      text: 'Dada, ek baat poochun?',
+      text: 'Dada, can I ask you something?',
       cameraFocus: 'two_shot',
       cameraEvent: 'two_shot',
       animation: 'curious',
       audioCue: 'child_curious',
-      audioFile: undefined, // Assign external audio path here, e.g. '/assets/audio/voice/line_1.mp3'
+      audioFile: undefined,
     },
     {
       id: 'line_2',
       speaker: 'Old Man',
-      text: 'Haan beta, pooch.',
+      text: 'Of course, my child. What is on your mind?',
       cameraFocus: 'two_shot',
       cameraEvent: 'old_man_close',
       animation: 'talk',
@@ -27,7 +27,7 @@ export const OPENING_DIALOGUE: DialogueSequence = {
     {
       id: 'line_3',
       speaker: 'Child',
-      text: 'Hum Ganesh Chaturthi kyun manate hain?',
+      text: 'Why do we celebrate Ganesh Chaturthi with so much devotion?',
       cameraFocus: 'two_shot',
       cameraEvent: 'child_close',
       animation: 'curious',
@@ -37,7 +37,7 @@ export const OPENING_DIALOGUE: DialogueSequence = {
     {
       id: 'line_4',
       speaker: 'Old Man',
-      text: 'Uski kahani bahut purani hai. Sunega?',
+      text: 'Ah, that is a wondrous tale from ancient times. Would you like to hear it?',
       cameraFocus: 'two_shot',
       cameraEvent: 'old_man_close',
       animation: 'talk',
@@ -47,7 +47,7 @@ export const OPENING_DIALOGUE: DialogueSequence = {
     {
       id: 'line_5',
       speaker: 'Child',
-      text: 'Haan!',
+      text: 'Yes! Please tell me the story!',
       cameraFocus: 'two_shot',
       cameraEvent: 'two_shot',
       animation: 'nod',
@@ -64,7 +64,7 @@ export const STORY_MODE_DIALOGUE: DialogueSequence = {
     {
       id: 'story_line_1',
       speaker: 'Old Man',
-      text: 'Toh suno beta, yeh pavitra katha shuru hoti hai pavitra Kailash parvat se...',
+      text: 'Listen closely, my child. This sacred legend begins high upon holy Mount Kailash...',
       cameraFocus: 'two_shot',
       cameraEvent: 'story_mode',
       animation: 'talk',
@@ -74,7 +74,7 @@ export const STORY_MODE_DIALOGUE: DialogueSequence = {
     {
       id: 'story_line_2',
       speaker: 'Child',
-      text: 'Kailash parvat? Jahan Bhagwan Shiva aur Mata Parvati rehte the?',
+      text: 'Mount Kailash? Where Lord Shiva and Goddess Parvati lived?',
       cameraFocus: 'child',
       cameraEvent: 'child_close',
       animation: 'curious',
@@ -84,7 +84,7 @@ export const STORY_MODE_DIALOGUE: DialogueSequence = {
     {
       id: 'story_line_3',
       speaker: 'Old Man',
-      text: 'Haan beta. Ek din jab Mahadev dhyan mein the, tab Mata Parvati ne ek adbhut baalak ki rachna ki...',
+      text: 'Yes, little one. One day while Mahadev was deep in meditation, Goddess Parvati created a miraculous young boy of her own...',
       cameraFocus: 'two_shot',
       cameraEvent: 'story_mode',
       animation: 'talk',
@@ -94,3 +94,45 @@ export const STORY_MODE_DIALOGUE: DialogueSequence = {
   ],
 };
 
+export const RETURN_HOME_DIALOGUE: DialogueSequence = {
+  id: 'return_home_conversation',
+  title: 'The Lesson of Lord Ganesha',
+  lines: [
+    {
+      id: 'return_1',
+      speaker: 'Child',
+      text: 'Dada... Lord Shiva realized his mistake and gave him the sacred elephant head! And blessed him to be the first worshipped!',
+      cameraFocus: 'child',
+      cameraEvent: 'child_close',
+      animation: 'curious',
+      audioCue: 'child_excited',
+    },
+    {
+      id: 'return_2',
+      speaker: 'Old Man',
+      text: 'Yes, Vinay. And remember his name: Vighnaharta — the remover of obstacles. Whenever you face hardship, remember that devotion and wisdom find a way.',
+      cameraFocus: 'old_man',
+      cameraEvent: 'old_man_close',
+      animation: 'talk',
+      audioCue: 'dada_warm',
+    },
+    {
+      id: 'return_3',
+      speaker: 'Child',
+      text: 'I will never forget, Dada! Every single year, I will celebrate Ganesh Chaturthi and build Bappa a beautiful home!',
+      cameraFocus: 'two_shot',
+      cameraEvent: 'two_shot',
+      animation: 'nod',
+      audioCue: 'child_excited',
+    },
+    {
+      id: 'return_4',
+      speaker: 'Old Man',
+      text: 'Keep that promise, beta. Seasons change, years will fly by... but the love we carry for Bappa and each other will never fade.',
+      cameraFocus: 'two_shot',
+      cameraEvent: 'two_shot',
+      animation: 'talk',
+      audioCue: 'dada_warm',
+    },
+  ],
+};

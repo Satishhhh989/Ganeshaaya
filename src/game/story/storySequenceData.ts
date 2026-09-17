@@ -1,0 +1,335 @@
+import type { StoryScene } from './storyTypes';
+import { STORY_ASSETS } from './storyAssets';
+
+export const STORY_SCENES: Record<string, StoryScene> = {
+  MYTHOLOGY_INTRO: {
+    id: 'scene_01_kailash',
+    stateId: 'MYTHOLOGY_INTRO',
+    title: 'Mount Kailash',
+    subtitle: 'The Sacred Abode of the Gods',
+    background: STORY_ASSETS.backgrounds.kailashAbode.url,
+    layers: [
+      {
+        id: 'layer_bg_kailash',
+        type: 'background',
+        src: STORY_ASSETS.backgrounds.kailashAbode.url,
+        depth: 0.15,
+        scale: 1.05,
+      },
+      {
+        id: 'layer_particles_snow',
+        type: 'particles',
+        depth: 0.8,
+      },
+    ],
+    narration: {
+      id: 'narr_01',
+      speaker: 'Dada',
+      title: 'Sacred Mount Kailash',
+      text: 'It began eons ago, high among the snow-crowned peaks of the sacred Himalayas... On Mount Kailash, the divine abode of Lord Shiva and Goddess Parvati, an eternal stillness enveloped the heavens.',
+      audio: '/assets/audio/voice/narration_01_kailash.mp3',
+    },
+    audio: {
+      bgm: '/assets/audio/music/divine_kailash_ambience.mp3',
+      ambient: '/assets/audio/sfx/himalayan_wind.mp3',
+    },
+    camera: {
+      initialZoom: 1.0,
+      targetZoom: 1.08,
+      panX: 0,
+      panY: -2,
+      duration: 12,
+    },
+    effects: {
+      particleType: 'himalayan_snow',
+      vignette: true,
+      ambientLightColor: 'rgba(255, 235, 195, 0.1)',
+    },
+    nextScene: 'PARVATI_INTRO',
+  },
+
+  PARVATI_INTRO: {
+    id: 'scene_02_parvati',
+    stateId: 'PARVATI_INTRO',
+    title: 'Goddess Parvati',
+    subtitle: 'A Mother’s Silent Wish',
+    background: STORY_ASSETS.characters.parvatiSerene.url,
+    layers: [
+      {
+        id: 'layer_parvati_main',
+        type: 'character',
+        src: STORY_ASSETS.characters.parvatiSerene.url,
+        depth: 0.35,
+        scale: 1.06,
+        animation: 'subtle_float',
+      },
+      {
+        id: 'layer_petals_drift',
+        type: 'foreground',
+        src: STORY_ASSETS.props.lotusPetalsForeground.url,
+        depth: 0.9,
+        blendMode: 'screen',
+        opacity: 0.65,
+      },
+      {
+        id: 'layer_golden_particles',
+        type: 'particles',
+        depth: 0.7,
+      },
+    ],
+    narration: {
+      id: 'narr_02',
+      speaker: 'Dada',
+      title: 'Goddess Parvati',
+      text: 'One day, while Lord Shiva was away in deep cosmic meditation, Goddess Parvati yearned for a devoted companion—someone of her very own soul, who would guard her sacred sanctuary with unwavering loyalty.',
+      audio: '/assets/audio/voice/narration_02_parvati.mp3',
+    },
+    audio: {
+      bgm: '/assets/audio/music/divine_kailash_ambience.mp3',
+      sfx: '/assets/audio/sfx/temple_chime_soft.mp3',
+    },
+    camera: {
+      initialZoom: 1.02,
+      targetZoom: 1.12,
+      panX: 1,
+      panY: -1,
+      duration: 10,
+    },
+    effects: {
+      particleType: 'lotus_drift',
+      vignette: true,
+      pulseGlow: true,
+    },
+    nextScene: 'GANESHA_CREATION',
+  },
+
+  GANESHA_CREATION: {
+    id: 'scene_03_creation',
+    stateId: 'GANESHA_CREATION',
+    title: 'The Sacred Creation',
+    subtitle: 'Molded from Sandalwood and Turmeric',
+    background: STORY_ASSETS.characters.parvatiCreatingClay.url,
+    layers: [
+      {
+        id: 'layer_creation_hands',
+        type: 'character',
+        src: STORY_ASSETS.characters.parvatiCreatingClay.url,
+        depth: 0.3,
+        scale: 1.05,
+      },
+      {
+        id: 'layer_golden_aura',
+        type: 'effect',
+        src: STORY_ASSETS.effects.divineGoldenAura.url,
+        depth: 0.5,
+        blendMode: 'screen',
+        opacity: 0.45,
+        animation: 'glow_breathe',
+      },
+      {
+        id: 'layer_prana_sparkles',
+        type: 'particles',
+        depth: 0.85,
+      },
+    ],
+    narration: {
+      id: 'narr_03',
+      speaker: 'Dada',
+      title: 'Divine Sculpting',
+      text: 'With boundless motherly devotion, she gently sculpted the form of a radiant young boy from fragrant sandalwood paste and sacred turmeric, infusing the clay with divine love and celestial grace.',
+      audio: '/assets/audio/voice/narration_03_creation.mp3',
+    },
+    audio: {
+      bgm: '/assets/audio/music/divine_kailash_ambience.mp3',
+      sfx: '/assets/audio/sfx/sacred_hum.mp3',
+    },
+    camera: {
+      initialZoom: 1.0,
+      targetZoom: 1.14,
+      panX: 0,
+      panY: 2,
+      duration: 11,
+    },
+    effects: {
+      particleType: 'golden_prana',
+      pulseGlow: true,
+      glowColor: 'rgba(255, 190, 60, 0.4)',
+    },
+    nextScene: 'GANESHA_AWAKENING',
+  },
+
+  GANESHA_AWAKENING: {
+    id: 'scene_04_awakening',
+    stateId: 'GANESHA_AWAKENING',
+    title: 'The Breath of Life',
+    subtitle: 'The Awakening of Young Ganesha',
+    background: STORY_ASSETS.characters.ganeshaAwakened.url,
+    layers: [
+      {
+        id: 'layer_ganesha_awakened',
+        type: 'character',
+        src: STORY_ASSETS.characters.ganeshaAwakened.url,
+        depth: 0.35,
+        scale: 1.04,
+        animation: 'slow_pulse',
+      },
+      {
+        id: 'layer_prana_aura',
+        type: 'effect',
+        src: STORY_ASSETS.effects.divineGoldenAura.url,
+        depth: 0.5,
+        blendMode: 'screen',
+        opacity: 0.7,
+        animation: 'glow_breathe',
+      },
+      {
+        id: 'layer_lotus_foreground',
+        type: 'foreground',
+        src: STORY_ASSETS.props.lotusPetalsForeground.url,
+        depth: 0.9,
+        blendMode: 'screen',
+        opacity: 0.5,
+      },
+      {
+        id: 'layer_sparkles',
+        type: 'particles',
+        depth: 0.95,
+      },
+    ],
+    narration: {
+      id: 'narr_04',
+      speaker: 'Dada',
+      title: 'Life Awakens',
+      text: 'Through her divine power, she breathed the sacred breath of life into the golden figure! A dazzling pulse of light erupted across the sanctuary—the boy awakened, smiling gently with pure innocence and affection.',
+      audio: '/assets/audio/voice/narration_04_awakening.mp3',
+    },
+    audio: {
+      bgm: '/assets/audio/music/divine_kailash_ambience.mp3',
+      sfx: '/assets/audio/sfx/divine_pulse_awakening.mp3',
+    },
+    camera: {
+      initialZoom: 1.08,
+      targetZoom: 1.0,
+      panX: 0,
+      panY: -1,
+      duration: 10,
+    },
+    effects: {
+      particleType: 'golden_prana',
+      flash: true,
+      pulseGlow: true,
+      glowColor: 'rgba(255, 215, 80, 0.6)',
+    },
+    nextScene: 'GANESHA_GUARDING',
+  },
+
+  GANESHA_GUARDING: {
+    id: 'scene_05_guarding',
+    stateId: 'GANESHA_GUARDING',
+    title: 'The Sacred Duty',
+    subtitle: 'Guardian of the Mountain Gate',
+    background: STORY_ASSETS.characters.ganeshaGuarding.url,
+    layers: [
+      {
+        id: 'layer_ganesha_guard',
+        type: 'character',
+        src: STORY_ASSETS.characters.ganeshaGuarding.url,
+        depth: 0.35,
+        scale: 1.05,
+        animation: 'subtle_float',
+      },
+      {
+        id: 'layer_petals_wind',
+        type: 'foreground',
+        src: STORY_ASSETS.props.lotusPetalsForeground.url,
+        depth: 0.85,
+        blendMode: 'screen',
+        opacity: 0.4,
+      },
+      {
+        id: 'layer_snow_dust',
+        type: 'particles',
+        depth: 0.8,
+      },
+    ],
+    narration: {
+      id: 'narr_05',
+      speaker: 'Dada',
+      title: 'A Mother’s Command',
+      text: 'Placing a wooden staff in his hands, Parvati instructed: "My beloved son, I go to bathe. Let no soul enter until I return." Stepping before the stone archway, young Ganesha stood steadfast and brave, dedicated to his duty.',
+      audio: '/assets/audio/voice/narration_05_guarding.mp3',
+    },
+    audio: {
+      bgm: '/assets/audio/music/divine_kailash_ambience.mp3',
+      ambient: '/assets/audio/sfx/himalayan_wind.mp3',
+    },
+    camera: {
+      initialZoom: 1.0,
+      targetZoom: 1.08,
+      panX: -1,
+      panY: 0,
+      duration: 12,
+    },
+    effects: {
+      particleType: 'himalayan_snow',
+      vignette: true,
+    },
+    nextScene: 'SHIVA_SETUP',
+  },
+
+  SHIVA_SETUP: {
+    id: 'scene_06_shiva_herald',
+    stateId: 'SHIVA_SETUP',
+    title: 'Herald of Mahadev',
+    subtitle: 'Thunder Upon the Snowy Peaks',
+    background: STORY_ASSETS.backgrounds.shivaArrivalSky.url,
+    layers: [
+      {
+        id: 'layer_shiva_arrival',
+        type: 'background',
+        src: STORY_ASSETS.backgrounds.shivaArrivalSky.url,
+        depth: 0.25,
+        scale: 1.07,
+      },
+      {
+        id: 'layer_storm_sparks',
+        type: 'particles',
+        depth: 0.9,
+      },
+    ],
+    narration: {
+      id: 'narr_06',
+      speaker: 'Dada',
+      title: 'The Great Lord Approaches',
+      text: 'Suddenly, deep within the frozen valleys, the thunderous resonance of the Damru drum echoed across the mountain passes. Swirling indigo clouds gathered in the sky—Lord Shiva was returning home, unaware of the loyal guardian awaiting at the gate.',
+      audio: '/assets/audio/voice/narration_06_shiva_herald.mp3',
+    },
+    audio: {
+      bgm: '/assets/audio/music/shiva_arrival_storm.mp3',
+      sfx: '/assets/audio/sfx/distant_thunder_damru.mp3',
+    },
+    camera: {
+      initialZoom: 1.0,
+      targetZoom: 1.15,
+      panX: 0,
+      panY: -2,
+      duration: 13,
+    },
+    effects: {
+      particleType: 'thunder_sparks',
+      vignette: true,
+      glowColor: 'rgba(80, 140, 255, 0.4)',
+    },
+    nextScene: 'SHIVA_SEQUENCE_READY',
+  },
+};
+
+export const STORY_SEQUENCE_ORDER: StoryScene['stateId'][] = [
+  'MYTHOLOGY_INTRO',
+  'PARVATI_INTRO',
+  'GANESHA_CREATION',
+  'GANESHA_AWAKENING',
+  'GANESHA_GUARDING',
+  'SHIVA_SETUP',
+  'SHIVA_SEQUENCE_READY',
+];
