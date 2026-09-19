@@ -22,42 +22,37 @@ interface StoryBeatData {
 
 const CINEMATIC_BEATS: Record<string, StoryBeatData> = {
   DIVINE_TRANSITION: {
-    chapter: 'KAILASH',
-    lines: ['With the noble creature’s blessing, Shiva returned to the sacred threshold of Kailash.'],
+    chapter: 'THE AWAKENING',
+    lines: ['Cosmic prana flowed through the sacred form, and Ganesha breathed once more.'],
     particleType: 'golden_prana',
   },
   DIVINE_RESTORATION: {
-    chapter: 'KAILASH',
-    lines: ['Cosmic prana flowed through the sacred form, binding breath and spirit as one.'],
+    chapter: 'THE AWAKENING',
+    lines: ['Cosmic prana flowed through the sacred form, and Ganesha breathed once more.'],
     particleType: 'golden_prana',
   },
   GANESHA_DIVINE_AWAKENING: {
     chapter: 'THE AWAKENING',
-    lines: [
-      'And Ganesha breathed once more.',
-      'With wise, gentle eyes, the eternal child opened his gaze to the morning sun.',
-    ],
+    lines: ['Ganesha opened his gentle eyes, restored to life.'],
     particleType: 'golden_prana',
   },
   FAMILY_REUNION: {
     chapter: 'THE REUNION',
-    lines: [
-      'Parvati held her beloved son once again.',
-      'Her sorrow dissolved into divine, boundless bliss as the holy family stood united.',
-    ],
+    lines: ['Parvati embraced her beloved son — sorrow dissolving into boundless joy.'],
     particleType: 'lotus_drift',
   },
   DIVINE_BLESSING: {
     chapter: 'PRATHAMA PUJYA',
     lines: [
-      'Mahadev proclaimed: “Before every venture and prayer, thou shalt be worshipped first.”',
-      '“The eternal remover of all obstacles — Sri Vighnaharta.”',
+      'Shiva blessed Ganesha and declared that he would be worshipped first before every new beginning.',
     ],
     particleType: 'lotus_drift',
   },
   RETURN_TO_PRESENT_READY: {
-    chapter: 'KAILASH',
-    lines: ['And so, the sacred legend echoed across time into our hearts.'],
+    chapter: 'PRATHAMA PUJYA',
+    lines: [
+      'Shiva blessed Ganesha and declared that he would be worshipped first before every new beginning.',
+    ],
     particleType: 'golden_prana',
   },
 };
@@ -67,7 +62,7 @@ export function RestorationCinematic({
   onAdvance,
   onReturnHome,
 }: RestorationCinematicProps) {
-  // Only render during restoration cinematic phases
+  // Active cinematic phases
   const activeCinematicPhases = useMemo(
     () => [
       'DIVINE_TRANSITION',
@@ -216,17 +211,13 @@ export function RestorationCinematic({
       setTimeout(() => {
         setIsTransitioning(false);
 
-        if (phase === 'DIVINE_TRANSITION') {
-          onAdvance('DIVINE_RESTORATION');
-        } else if (phase === 'DIVINE_RESTORATION') {
+        if (phase === 'DIVINE_TRANSITION' || phase === 'DIVINE_RESTORATION') {
           onAdvance('GANESHA_DIVINE_AWAKENING');
         } else if (phase === 'GANESHA_DIVINE_AWAKENING') {
           onAdvance('FAMILY_REUNION');
         } else if (phase === 'FAMILY_REUNION') {
           onAdvance('DIVINE_BLESSING');
-        } else if (phase === 'DIVINE_BLESSING') {
-          onAdvance('RETURN_TO_PRESENT_READY');
-        } else if (phase === 'RETURN_TO_PRESENT_READY') {
+        } else if (phase === 'DIVINE_BLESSING' || phase === 'RETURN_TO_PRESENT_READY') {
           onReturnHome();
         }
       }, 550);

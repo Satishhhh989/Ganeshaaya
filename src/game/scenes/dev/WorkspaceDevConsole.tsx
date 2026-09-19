@@ -178,7 +178,7 @@ export function WorkspaceDevConsole() {
           pointerEvents: 'none',
         }}
       >
-        NIAT NATIONAL GAME CHALLENGE · ₹15,000 PRIZE
+        NIIT GAME MAKING CHAMPIONSHIP · ₹15,000 PRIZE
       </div>
 
       {/* ─── INTERACTIVE WORKSTATION MONITOR INTERFACE ─── */}
@@ -756,7 +756,7 @@ export function WorkspaceDevConsole() {
                 e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
               }}
             >
-              Skip → Submit to NIAT
+              Skip → Submit to NIIT
             </button>
           </div>
         </div>
@@ -787,7 +787,7 @@ export function WorkspaceDevConsole() {
               textShadow: '0 2px 10px rgba(0, 0, 0, 0.95)',
             }}
           >
-            N · I · A · T   N A T I O N A L   C H A L L E N G E
+            N · I · I · T   G A M E   M A K I N G   C H A M P I O N S H I P
           </div>
           <h1
             style={{

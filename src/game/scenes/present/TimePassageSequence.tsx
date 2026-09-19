@@ -47,8 +47,8 @@ export function TimePassageSequence() {
     }, 850);
   }, []);
 
-  // ─── CONTINUOUS 18-SECOND GROWING-UP TIME PASSAGE ENGINE ───
-  // Child Vinay -> School Years -> College Youth -> Adult Vinay (hold 2s) -> 3 short lines -> Financial Problem
+  // ─── CONTINUOUS 12-SECOND GROWING-UP TIME PASSAGE ENGINE ───
+  // Child Vinay -> Passing Seasons / College -> Adult Vinay (10-12s max) -> Problem -> Notification
   const stageRef = useRef(timePassageStage);
   stageRef.current = timePassageStage;
 
@@ -59,27 +59,27 @@ export function TimePassageSequence() {
       setPassageElapsed((prev) => {
         const next = prev + 0.2;
 
-        // t = 4.0s: Transition from Child to School Years
-        if (prev < 4.0 && next >= 4.0) {
+        // t = 2.5s: Transition from Child to School Years
+        if (prev < 2.5 && next >= 2.5) {
           triggerLightSweep(() => {
             gameStateStore.setTimePassageStage(1);
           });
         }
-        // t = 8.0s: Transition from School Years to College Youth
-        else if (prev < 8.0 && next >= 8.0) {
+        // t = 5.5s: Transition from School Years to College Youth
+        else if (prev < 5.5 && next >= 5.5) {
           triggerLightSweep(() => {
             gameStateStore.setTimePassageStage(2);
           });
         }
-        // t = 12.0s: Transition to Adult Vinay
-        else if (prev < 12.0 && next >= 12.0) {
+        // t = 8.5s: Transition to Adult Vinay
+        else if (prev < 8.5 && next >= 8.5) {
           triggerLightSweep(() => {
             gameStateStore.setTimePassageStage(3);
             gameStateStore.setAdultProtagonist(true);
           });
         }
-        // t = 24.5s: Auto-advance to Financial Problem after narration
-        else if (prev < 24.5 && next >= 24.5) {
+        // t = 12.0s: Auto-advance to Financial Problem
+        else if (prev < 12.0 && next >= 12.0) {
           triggerLightSweep(() => {
             gameStateStore.advancePresentPhase('FINANCIAL_PROBLEM');
           });
@@ -97,35 +97,19 @@ export function TimePassageSequence() {
   let currentChapter = "VINAY'S JOURNEY";
 
   if (presentScenePhase === 'TIME_PASSAGE') {
-    currentChapter = "VINAY'S JOURNEY";
-    // 0s to 12.0s: Visual memory flow (no text, room and Vinay transform)
-    // 12.0s to 14.0s: Camera settles on Adult Vinay (hold 2s with silence)
-    // 14.0s to 17.5s: Line 1
-    // 17.5s to 21.0s: Line 2
-    // 21.0s to 24.5s: Line 3
-    if (passageElapsed >= 14.0 && passageElapsed < 17.5) {
-      currentSubtitle = 'Years passed.';
-    } else if (passageElapsed >= 17.5 && passageElapsed < 21.0) {
-      currentSubtitle = 'But every Ganesh Chaturthi, he returned to the same tradition.';
-    } else if (passageElapsed >= 21.0) {
-      currentSubtitle = 'This year was different.';
+    currentChapter = "AFTER A FEW YEARS...";
+    if (passageElapsed < 6.0) {
+      currentSubtitle = 'Years passed. Vinay grew up.';
+    } else if (passageElapsed < 12.0) {
+      currentSubtitle = 'Ganesh Chaturthi was approaching... but something weighed on his mind.';
     }
   } else if (presentScenePhase === 'FINANCIAL_PROBLEM') {
-    currentChapter = 'AN UNEXPECTED HURDLE';
-    const problemLines = [
-      'Vinay had promised to build the community pandal himself.',
-      'After college graduation fees, his savings were depleted... ₹15,000 was needed.',
-      '“How can we welcome Bappa without a proper pandal? I cannot give up.”',
-    ];
-    currentSubtitle = problemLines[beatIndex] || problemLines[0];
+    currentChapter = 'A FINANCIAL HURDLE';
+    // Single short beat
+    currentSubtitle = "“I don't have enough money. How am I going to celebrate Ganesh Chaturthi?”";
   } else if (presentScenePhase === 'COMPETITION_DISCOVERY') {
-    currentChapter = 'THE TURNING POINT';
-    const compLines = [
-      'A sudden notification illuminated his desk: The NIAT National Game Challenge.',
-      'Theme: Indian Heritage & Ancient Legends... First Prize: Exactly ₹15,000!',
-      '“Vinay had one chance. Build something worth remembering.”',
-    ];
-    currentSubtitle = compLines[beatIndex] || compLines[0];
+    currentChapter = 'AN OPPORTUNITY';
+    currentSubtitle = 'This could be his opportunity to bring Bappa home.';
   }
 
   // Active check
@@ -144,25 +128,18 @@ export function TimePassageSequence() {
     audioManager.playUIClick();
 
     if (presentScenePhase === 'TIME_PASSAGE') {
-      // Allow player to fast-forward through montage stages or lines
-      if (passageElapsed < 4.0) {
-        setPassageElapsed(4.0);
+      if (passageElapsed < 2.5) {
+        setPassageElapsed(2.5);
         triggerLightSweep(() => gameStateStore.setTimePassageStage(1));
-      } else if (passageElapsed < 8.0) {
-        setPassageElapsed(8.0);
+      } else if (passageElapsed < 5.5) {
+        setPassageElapsed(5.5);
         triggerLightSweep(() => gameStateStore.setTimePassageStage(2));
-      } else if (passageElapsed < 12.0) {
-        setPassageElapsed(12.0);
+      } else if (passageElapsed < 8.5) {
+        setPassageElapsed(8.5);
         triggerLightSweep(() => {
           gameStateStore.setTimePassageStage(3);
           gameStateStore.setAdultProtagonist(true);
         });
-      } else if (passageElapsed < 14.0) {
-        setPassageElapsed(14.0);
-      } else if (passageElapsed < 17.5) {
-        setPassageElapsed(17.5);
-      } else if (passageElapsed < 21.0) {
-        setPassageElapsed(21.0);
       } else {
         triggerLightSweep(() => {
           gameStateStore.advancePresentPhase('FINANCIAL_PROBLEM');
@@ -177,26 +154,17 @@ export function TimePassageSequence() {
         gameStateStore.advancePresentPhase('FINANCIAL_PROBLEM');
       });
     } else if (presentScenePhase === 'FINANCIAL_PROBLEM') {
-      if (beatIndex < 2) {
-        setBeatIndex((prev) => prev + 1);
-        setAnimKey((prev) => prev + 1);
-      } else {
-        triggerLightSweep(() => {
-          gameStateStore.advancePresentPhase('COMPETITION_DISCOVERY');
-        });
-      }
+      // 1 single short beat -> immediately trigger laptop notification
+      triggerLightSweep(() => {
+        gameStateStore.advancePresentPhase('COMPETITION_DISCOVERY');
+      });
     } else if (presentScenePhase === 'COMPETITION_DISCOVERY') {
-      if (beatIndex < 2) {
-        setBeatIndex((prev) => prev + 1);
-        setAnimKey((prev) => prev + 1);
-      } else {
-        // Launch directly into interactive game creation sequence
-        triggerLightSweep(() => {
-          gameStateStore.advancePresentPhase('GAME_DEVELOPMENT');
-        });
-      }
+      // Launch directly into game creation
+      triggerLightSweep(() => {
+        gameStateStore.advancePresentPhase('GAME_DEVELOPMENT');
+      });
     }
-  }, [isLightSweeping, presentScenePhase, passageElapsed, beatIndex, triggerLightSweep]);
+  }, [isLightSweeping, presentScenePhase, passageElapsed, triggerLightSweep]);
 
   // Skip directly to game creation
   const handleSkip = useCallback(() => {
@@ -344,6 +312,65 @@ export function TimePassageSequence() {
         />
       )}
 
+      {/* ─── NATURAL LAPTOP NOTIFICATION POPUP (DISCOVERY) ─── */}
+      {presentScenePhase === 'COMPETITION_DISCOVERY' && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 'clamp(28px, 6vh, 48px)',
+            right: 'clamp(20px, 4vw, 48px)',
+            zIndex: 96,
+            width: 'clamp(280px, 28vw, 340px)',
+            background: 'rgba(15, 23, 42, 0.94)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(254, 240, 138, 0.45)',
+            borderRadius: '12px',
+            padding: '16px 18px',
+            boxShadow: '0 12px 32px rgba(0, 0, 0, 0.75), 0 0 24px rgba(251, 191, 36, 0.2)',
+            animation: 'notificationSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            pointerEvents: 'none',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+            <span style={{ fontSize: '15px' }}>🔔</span>
+            <span
+              style={{
+                fontFamily: "'Outfit', sans-serif",
+                fontSize: '10px',
+                fontWeight: 700,
+                color: '#fef08a',
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Laptop Notification
+            </span>
+          </div>
+          <div
+            style={{
+              fontFamily: "'Cinzel', 'Marcellus', serif",
+              fontSize: '13px',
+              fontWeight: 700,
+              color: '#ffffff',
+              letterSpacing: '0.04em',
+              marginBottom: '4px',
+            }}
+          >
+            NIIT Game Making Championship
+          </div>
+          <div
+            style={{
+              fontFamily: "'Outfit', sans-serif",
+              fontSize: '12px',
+              color: '#ffd700',
+              fontWeight: 600,
+            }}
+          >
+            Grand Prize: ₹15,000
+          </div>
+        </div>
+      )}
+
       {/* ─── FLOATING CINEMATIC SUBTITLE NARRATION ─── */}
       {currentSubtitle && (
         <div
@@ -442,6 +469,16 @@ export function TimePassageSequence() {
       />
 
       <style>{`
+        @keyframes notificationSlideIn {
+          0% {
+            opacity: 0;
+            transform: translateY(-16px) scale(0.96);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
         @keyframes fadeInUp {
           0% {
             opacity: 0;

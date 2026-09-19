@@ -126,12 +126,12 @@ export const STORY_MODE_DIALOGUE: DialogueSequence = {
 
 export const RETURN_HOME_DIALOGUE: DialogueSequence = {
   id: 'return_home_conversation',
-  title: 'The Lesson of Lord Ganesha',
+  title: 'The Sacred Blessing',
   lines: [
     {
       id: 'return_1',
       speaker: 'Child',
-      text: 'Dada... Lord Shiva realized his mistake and gave him the sacred elephant head! And blessed him to be the first worshipped!',
+      text: "So that's why we worship Ganesha first?",
       cameraFocus: 'child',
       cameraEvent: 'child_close',
       animation: 'curious',
@@ -140,7 +140,7 @@ export const RETURN_HOME_DIALOGUE: DialogueSequence = {
     {
       id: 'return_2',
       speaker: 'Old Man',
-      text: 'Yes, Vinay. And remember his name: Vighnaharta — the remover of obstacles. Whenever you face hardship, remember that devotion and wisdom find a way.',
+      text: 'Yes, my boy. Before every new beginning, we seek Ganesha’s blessings.',
       cameraFocus: 'old_man',
       cameraEvent: 'old_man_close',
       animation: 'talk',
@@ -149,16 +149,16 @@ export const RETURN_HOME_DIALOGUE: DialogueSequence = {
     {
       id: 'return_3',
       speaker: 'Child',
-      text: 'I will never forget, Dada! Every single year, I will celebrate Ganesh Chaturthi and build Bappa a beautiful home!',
-      cameraFocus: 'two_shot',
-      cameraEvent: 'two_shot',
+      text: "I'll never forget, Ajja.",
+      cameraFocus: 'child',
+      cameraEvent: 'child_close',
       animation: 'nod',
       audioCue: 'child_excited',
     },
     {
       id: 'return_4',
       speaker: 'Old Man',
-      text: 'Keep that promise, beta. Seasons change, years will fly by... but the love we carry for Bappa and each other will never fade.',
+      text: 'Good. Keep that devotion with you.',
       cameraFocus: 'two_shot',
       cameraEvent: 'two_shot',
       animation: 'talk',
