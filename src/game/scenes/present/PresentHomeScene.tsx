@@ -8,7 +8,6 @@ import { DiyaProps } from './DiyaProps';
 import { OldManNPC } from './OldManNPC';
 import { ModernRoomDecor } from './ModernRoomDecor';
 import { CeilingFan } from './CeilingFan';
-import { WindowCurtains } from './WindowCurtains';
 
 export function PresentHomeScene() {
   const gltf = useGLTF(ASSET_CONFIG.environments.home.url);
@@ -70,9 +69,6 @@ export function PresentHomeScene() {
 
       {/* Rotating Living Room Ceiling Fan */}
       <CeilingFan />
-
-      {/* Soft Sheer Window Curtains swaying in monsoon air */}
-      <WindowCurtains />
 
       {/* Old Man (Dada) Character NPC */}
       <OldManNPC />

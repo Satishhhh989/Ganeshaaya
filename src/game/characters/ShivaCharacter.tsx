@@ -8,6 +8,7 @@ interface ShivaCharacterProps {
   isRunning?: boolean;
   isConfronting?: boolean;
   isRaisingTrishul?: boolean;
+  isAftermath?: boolean;
   model: THREE.Group | null;
   animations?: THREE.AnimationClip[];
 }
@@ -17,6 +18,7 @@ export function ShivaCharacter({
   isRunning = false,
   isConfronting = false,
   isRaisingTrishul = false,
+  isAftermath = false,
   model,
   animations = [],
 }: ShivaCharacterProps) {
@@ -125,6 +127,23 @@ export function ShivaCharacter({
           targetRotZ,
           dt * 4
         );
+      } else if (isAftermath) {
+        // Solemn Aftermath: slowly lower Trishul to side, resting downwards
+        trishulGroupRef.current.position.y = THREE.MathUtils.lerp(
+          trishulGroupRef.current.position.y,
+          -0.12,
+          dt * 2.0
+        );
+        trishulGroupRef.current.rotation.x = THREE.MathUtils.lerp(
+          trishulGroupRef.current.rotation.x,
+          0.24,
+          dt * 2.0
+        );
+        trishulGroupRef.current.rotation.z = THREE.MathUtils.lerp(
+          trishulGroupRef.current.rotation.z,
+          -0.08,
+          dt * 2.0
+        );
       } else {
         // Normal Held Position beside right hand
         const sway = Math.sin(time * (speed > 0.15 ? 5 : 1.5)) * 0.04;
@@ -136,7 +155,7 @@ export function ShivaCharacter({
 
   return (
     <group ref={groupRef}>
-      {/* ─── 3D Shiva Master Asset ─── */}
+      {/* ─── 3D Shiva Master Asset or Procedural Ascetic Model Fallback ─── */}
       {clonedModel ? (
         <primitive
           object={clonedModel}
@@ -144,11 +163,113 @@ export function ShivaCharacter({
           scale={0.0112} // Scale factor calibrated for ~2.15m majestic Shiva
         />
       ) : (
-        // Fallback loading indicator silhouette
-        <mesh position={[0, 1.05, 0]}>
-          <cylinderGeometry args={[0.3, 0.35, 2.1, 16]} />
-          <meshStandardMaterial color="#1a202c" roughness={0.7} />
-        </mesh>
+        <group position={[0, 0, 0]}>
+          {/* ─── Ascetic Dhoti / Tiger-Skin Wrap ─── */}
+          <mesh position={[0, 0.65, 0]} castShadow receiveShadow>
+            <cylinderGeometry args={[0.24, 0.28, 0.72, 18]} />
+            <meshStandardMaterial color="#92400e" roughness={0.8} />
+          </mesh>
+          <mesh position={[0, 0.98, 0]} castShadow>
+            <cylinderGeometry args={[0.26, 0.25, 0.08, 18]} />
+            <meshStandardMaterial color="#b45309" roughness={0.6} metalness={0.4} />
+          </mesh>
+
+          {/* ─── Legs ─── */}
+          {[-0.12, 0.12].map((x, idx) => (
+            <group key={idx} position={[x, 0.35, 0]}>
+              <mesh position={[0, -0.15, 0]} castShadow>
+                <capsuleGeometry args={[0.075, 0.32, 8, 12]} />
+                <meshStandardMaterial color="#8fa3bd" roughness={0.65} />
+              </mesh>
+              <mesh position={[0, -0.32, 0.04]}>
+                <boxGeometry args={[0.09, 0.05, 0.16]} />
+                <meshStandardMaterial color="#8fa3bd" roughness={0.65} />
+              </mesh>
+            </group>
+          ))}
+
+          {/* ─── Muscular Broad Chest (Ash-Blue Celestial Hue) ─── */}
+          <mesh position={[0, 1.34, 0]} castShadow receiveShadow>
+            <capsuleGeometry args={[0.24, 0.38, 10, 16]} />
+            <meshStandardMaterial color="#8fa3bd" roughness={0.62} metalness={0.08} />
+          </mesh>
+
+          {/* ─── Rudraksha Malas across chest & neck ─── */}
+          <mesh position={[0, 1.44, 0.12]} rotation={[0.2, 0, 0]}>
+            <torusGeometry args={[0.16, 0.016, 8, 20]} />
+            <meshStandardMaterial color="#451a03" roughness={0.8} />
+          </mesh>
+          <mesh position={[0, 1.32, 0.16]} rotation={[0.35, 0, 0]}>
+            <torusGeometry args={[0.18, 0.014, 8, 20]} />
+            <meshStandardMaterial color="#451a03" roughness={0.8} />
+          </mesh>
+
+          {/* ─── Sacred Serpent (Vasuki) coiled around neck ─── */}
+          <mesh position={[0, 1.62, 0.04]} rotation={[0.1, 0.3, 0]}>
+            <torusGeometry args={[0.11, 0.022, 8, 18]} />
+            <meshStandardMaterial color="#365314" roughness={0.4} metalness={0.3} />
+          </mesh>
+
+          {/* ─── Neck & Ascetic Head with Matted Locks (Jata) ─── */}
+          <mesh position={[0, 1.65, 0]} castShadow>
+            <cylinderGeometry args={[0.08, 0.095, 0.12, 14]} />
+            <meshStandardMaterial color="#8fa3bd" roughness={0.62} />
+          </mesh>
+          <group position={[0, 1.84, 0]}>
+            {/* Head */}
+            <mesh castShadow receiveShadow>
+              <sphereGeometry args={[0.15, 18, 16]} />
+              <meshStandardMaterial color="#8fa3bd" roughness={0.62} />
+            </mesh>
+            {/* Third Eye (Trinetra) on forehead */}
+            <mesh position={[0, 0.04, 0.145]}>
+              <boxGeometry args={[0.008, 0.028, 0.006]} />
+              <meshBasicMaterial color="#ef4444" />
+            </mesh>
+            {/* Matted Hair Jata Topknot */}
+            <mesh position={[0, 0.18, -0.02]} castShadow>
+              <cylinderGeometry args={[0.12, 0.16, 0.22, 14]} />
+              <meshStandardMaterial color="#1c1917" roughness={0.85} />
+            </mesh>
+            {/* Golden Crescent Moon (Chandra) on Jata */}
+            <mesh position={[0.10, 0.20, 0.06]} rotation={[0, 0.4, 0.3]}>
+              <torusGeometry args={[0.045, 0.008, 6, 16, Math.PI * 1.2]} />
+              <meshStandardMaterial color="#fef08a" roughness={0.2} metalness={0.9} emissive="#eab308" emissiveIntensity={0.4} />
+            </mesh>
+          </group>
+
+          {/* ─── Left Arm (Resting at side) ─── */}
+          <group position={[-0.32, 1.42, 0]}>
+            <mesh position={[0, -0.16, 0]} castShadow>
+              <capsuleGeometry args={[0.06, 0.22, 8, 10]} />
+              <meshStandardMaterial color="#8fa3bd" roughness={0.62} />
+            </mesh>
+            <mesh position={[0, -0.38, 0]} castShadow>
+              <capsuleGeometry args={[0.052, 0.20, 8, 10]} />
+              <meshStandardMaterial color="#8fa3bd" roughness={0.62} />
+            </mesh>
+            <mesh position={[0, -0.32, 0]}>
+              <torusGeometry args={[0.062, 0.012, 6, 14]} />
+              <meshStandardMaterial color="#451a03" roughness={0.8} />
+            </mesh>
+          </group>
+
+          {/* ─── Right Arm (Gripping Trishul) ─── */}
+          <group position={[0.32, 1.42, 0]}>
+            <mesh position={[0, -0.16, 0]} castShadow>
+              <capsuleGeometry args={[0.06, 0.22, 8, 10]} />
+              <meshStandardMaterial color="#8fa3bd" roughness={0.62} />
+            </mesh>
+            <mesh position={[0, -0.38, 0.05]} rotation={[0.2, 0, 0]} castShadow>
+              <capsuleGeometry args={[0.052, 0.20, 8, 10]} />
+              <meshStandardMaterial color="#8fa3bd" roughness={0.62} />
+            </mesh>
+            <mesh position={[0, -0.32, 0.05]}>
+              <torusGeometry args={[0.062, 0.012, 6, 14]} />
+              <meshStandardMaterial color="#451a03" roughness={0.8} />
+            </mesh>
+          </group>
+        </group>
       )}
 
       {/* ─── Divine Hand-Held Trishul Prop ─── */}

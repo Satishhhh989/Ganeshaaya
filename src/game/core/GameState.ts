@@ -33,6 +33,7 @@ interface GameStoreState {
   shivaPhase: ShivaStoryPhase;
   isNearElephant: boolean;
   gameBudget: number;
+  protagonistAge: 'child' | 'adult';
   isAdultProtagonist: boolean;
   gameDevState: GameDevState;
   prizeReceived: boolean;
@@ -47,6 +48,26 @@ interface GameStoreState {
   ganeshaInstalled: boolean;
   ganeshaChaturthiCelebrationComplete: boolean;
   festivalTimeOfDay: 'MORNING' | 'EVENING' | 'NIGHT';
+  festivalArrivalStep: number;
+  timePassageStage: number;
+  arcadeActive: boolean;
+}
+
+export type PlayerMotionState =
+  | 'IDLE'
+  | 'WALK'
+  | 'RUN'
+  | 'INTERACT'
+  | 'PRAY'
+  | 'CARRY'
+  | 'CINEMATIC_WALK';
+
+export interface PlayerMotionData {
+  velocity: number;
+  state: PlayerMotionState;
+  isPraying: boolean;
+  isCarrying: boolean;
+  isInteracting: boolean;
 }
 
 export function normalizePandalTaskId(task: string): string {
@@ -81,7 +102,7 @@ class GameStateStore {
     cinematicMode: false,
     audioSettings: initialAudioSettings,
     controlsLocked: false,
-    playerPos: [0.6, 0, 5.2],
+    playerPos: [0.6, 0.0, 6.4],
     playerRot: 0,
     isPlayerMoving: false,
     isPlayerRunning: false,
@@ -89,6 +110,7 @@ class GameStateStore {
     shivaPhase: 'SHIVA_SEQUENCE_READY',
     isNearElephant: false,
     gameBudget: 0,
+    protagonistAge: 'child',
     isAdultProtagonist: false,
     gameDevState: 'NOT_STARTED',
     prizeReceived: false,
@@ -103,6 +125,17 @@ class GameStateStore {
     ganeshaInstalled: false,
     ganeshaChaturthiCelebrationComplete: false,
     festivalTimeOfDay: 'MORNING',
+    festivalArrivalStep: 0,
+    timePassageStage: 0,
+    arcadeActive: false,
+  };
+
+  public playerMotion: PlayerMotionData = {
+    velocity: 0,
+    state: 'IDLE',
+    isPraying: false,
+    isCarrying: false,
+    isInteracting: false,
   };
 
   private listeners = new Set<() => void>();
@@ -129,6 +162,8 @@ class GameStateStore {
       presentScenePhase: 'APPROACH',
       controlsLocked: false,
       isChildSitting: false,
+      protagonistAge: 'child',
+      isAdultProtagonist: false,
       currentObjective: 'Approach Dada in the warm living room [WASD to walk]',
     });
   };
@@ -144,6 +179,7 @@ class GameStateStore {
       dialogueIndex: 0,
       activeInteraction: null,
       isChildSitting: false,
+      protagonistAge: 'child',
       isAdultProtagonist: false,
       isWorkingAtDesk: false,
       gameBudget: 0,
@@ -158,7 +194,7 @@ class GameStateStore {
       ganeshaInstalled: false,
       ganeshaChaturthiCelebrationComplete: false,
       festivalTimeOfDay: 'MORNING',
-      playerPos: [0.6, 0, 5.2],
+      playerPos: [0.6, 0.0, 6.4],
       playerRot: 0,
       currentObjective: 'Approach Dada in the warm living room',
     });
@@ -191,7 +227,7 @@ class GameStateStore {
     if (dialogueIndex + 1 < activeDialogue.lines.length) {
       this.setState({ dialogueIndex: dialogueIndex + 1 });
     } else {
-      // If closing the initial opening dialogue, start the physical walk-to-sofa transition!
+      // If closing the initial opening dialogue, start the physical walk-to-sofa sequence!
       if (presentScenePhase === 'APPROACH' || presentScenePhase === 'INITIAL_DIALOGUE') {
         this.completeInitialDialogue();
       } else if (presentScenePhase === 'STORY_MODE') {
@@ -204,12 +240,22 @@ class GameStateStore {
     }
   };
 
+  setTimePassageStage = (stage: number) => {
+    const isAdult = stage >= 3 || this.state.protagonistAge === 'adult';
+    this.setState({
+      timePassageStage: stage,
+      protagonistAge: isAdult ? 'adult' : 'child',
+      isAdultProtagonist: isAdult,
+    });
+  };
+
   startTimePassage = () => {
     this.setState({
       gameState: 'PLAYING',
       activeDialogue: null,
       dialogueIndex: 0,
       presentScenePhase: 'TIME_PASSAGE',
+      timePassageStage: 0,
       controlsLocked: true,
       cinematicMode: true,
       currentObjective: 'Witness the years pass in the family home...',
@@ -261,7 +307,9 @@ class GameStateStore {
     const isGameplay =
       phase === 'SHIVA_GAMEPLAY' ||
       phase === 'SHIVA_APPROACH' ||
-      phase === 'SHIVA_SEARCH';
+      phase === 'SHIVA_SEARCH' ||
+      phase === 'TRISHUL_AIMING' ||
+      phase === 'TRISHUL_THROWING';
     this.setState({
       shivaPhase: phase,
       storyState: phase as StoryState,
@@ -270,6 +318,18 @@ class GameStateStore {
       currentObjective:
         phase === 'SHIVA_INTRO'
           ? 'Lord Shiva arrives upon Mount Kailash'
+          : phase === 'TRISHUL_AIMING'
+          ? 'Aim with Mouse and Left Click to throw the Trishul'
+          : phase === 'TRISHUL_THROWING'
+          ? 'The sacred Trishul surges toward the threshold'
+          : phase === 'TRISHUL_HIT' || phase === 'TRISHUL_IMPACT'
+          ? 'Impact at the sacred entrance'
+          : phase === 'SHIVA_REALIZES' || phase === 'SHIVA_AFTERMATH'
+          ? 'Lord Shiva contemplates the fallen guardian'
+          : phase === 'SHIVA_DECISION'
+          ? 'Mahadev resolves to seek a sacred life across the peaks'
+          : phase === 'FOREST_TRANSITION'
+          ? 'Ascending through the mountain mist into the ancient forest'
           : phase === 'SHIVA_GAMEPLAY'
           ? 'Explore the mountain path and approach the sacred cave entrance [WASD to Walk]'
           : phase === 'SHIVA_APPROACH'
@@ -301,7 +361,7 @@ class GameStateStore {
   };
 
   replayShivaSequence = () => {
-    this.setShivaPhase('SHIVA_GAMEPLAY');
+    this.setShivaPhase('TRISHUL_AIMING');
   };
 
   setNearElephant = (isNear: boolean) => {
@@ -326,6 +386,7 @@ class GameStateStore {
 
   advancePresentPhase = (phase: PresentScenePhase) => {
     const isAdult =
+      this.state.protagonistAge === 'adult' ||
       phase === 'ADULT_PROTAGONIST' ||
       phase === 'ANNUAL_FESTIVAL_MONTAGE' ||
       phase === 'CURRENT_YEAR' ||
@@ -390,8 +451,8 @@ class GameStateStore {
     let cinematicMode = true;
 
     if (isDevDesk) {
-      newPlayerPos = [2.4, 0, 3.95];
-      newPlayerRot = Math.PI; // facing desk towards negative Z
+      newPlayerPos = [1.85, 0, 3.4];
+      newPlayerRot = Math.PI / 2; // facing desk towards positive X
     } else if (phase === 'PRIZE_RECEIVED' || phase === 'PANDAL_READY') {
       newPlayerPos = [0.6, 0, 5.2];
       newPlayerRot = 0;
@@ -428,12 +489,14 @@ class GameStateStore {
     this.setState({
       presentScenePhase: phase,
       currentScene: scene,
+      protagonistAge: isAdult ? 'adult' : 'child',
       isAdultProtagonist: isAdult,
       isChildSitting: isAdult ? false : this.state.isChildSitting,
       isWorkingAtDesk: isDevDesk,
       gameBudget: budget,
       prizeReceived: isWon,
       prizeAmount: isWon ? 15000 : this.state.prizeAmount,
+      timePassageStage: isAdult ? 3 : this.state.timePassageStage,
       playerPos: newPlayerPos,
       playerRot: newPlayerRot,
       controlsLocked,
@@ -488,21 +551,56 @@ class GameStateStore {
     const newSpent = this.state.pandalSpentBudget + cost;
     const newRemaining = Math.max(0, 15000 - newSpent);
     const isAllComplete = newCompleted.length >= 8;
-    const isGanesha = norm === 'FINAL_DECORATION' || this.state.ganeshaInstalled;
 
     this.setState({
       completedPandalTasks: newCompleted,
       pandalSpentBudget: newSpent,
       pandalRemainingBudget: newRemaining,
-      ganeshaInstalled: isGanesha,
+      ganeshaInstalled: false, // Sacred clay idol arrives with colony procession on morning
       pandalComplete: isAllComplete,
       controlsLocked: isAllComplete,
       cinematicMode: isAllComplete,
-      presentScenePhase: isAllComplete ? 'PANDAL_COMPLETE' : 'PANDAL_BUILDING',
+      presentScenePhase: isAllComplete ? 'FESTIVAL_PREPARATION' : 'PANDAL_BUILDING',
+      festivalTimeOfDay: isAllComplete ? 'MORNING' : this.state.festivalTimeOfDay,
+      festivalArrivalStep: 0,
       currentObjective: isAllComplete
-        ? 'The pandal is complete! Admire Lord Ganesha’s sacred altar'
+        ? 'Ganesh Chaturthi Morning · Welcome Lord Ganesha into the pandal'
         : `Building Bappa's Home: ${newCompleted.length}/8 tasks complete (Remaining: ₹${newRemaining.toLocaleString('en-IN')})`,
     });
+  };
+
+  setFestivalArrivalStep = (step: number) => {
+    this.setState({ festivalArrivalStep: step });
+  };
+
+  setPlayerMotion = (
+    velocity: number,
+    state?: PlayerMotionState,
+    isPraying?: boolean,
+    isCarrying?: boolean,
+    isInteracting?: boolean
+  ) => {
+    const absVel = Math.abs(velocity);
+    let computedState = state;
+    if (!computedState) {
+      if (absVel < 0.05) {
+        computedState = 'IDLE';
+      } else if (absVel > 3.0) {
+        computedState = 'RUN';
+      } else {
+        computedState = 'WALK';
+      }
+    }
+    // Hard rule: if velocity ≈ 0 and not in a special pose (PRAY, INTERACT), state must be IDLE
+    if (absVel < 0.05 && computedState !== 'PRAY' && computedState !== 'INTERACT') {
+      computedState = 'IDLE';
+    }
+
+    this.playerMotion.velocity = absVel < 0.05 ? 0 : velocity;
+    this.playerMotion.state = computedState;
+    if (isPraying !== undefined) this.playerMotion.isPraying = isPraying;
+    if (isCarrying !== undefined) this.playerMotion.isCarrying = isCarrying;
+    if (isInteracting !== undefined) this.playerMotion.isInteracting = isInteracting;
   };
 
   setPandalMontage = (playing: boolean) => {
@@ -555,7 +653,10 @@ class GameStateStore {
   };
 
   setAdultProtagonist = (isAdult: boolean) => {
-    this.setState({ isAdultProtagonist: isAdult });
+    this.setState({
+      protagonistAge: isAdult ? 'adult' : 'child',
+      isAdultProtagonist: isAdult,
+    });
   };
 
   completeInitialDialogue = () => {
@@ -571,7 +672,32 @@ class GameStateStore {
   };
 
   setPresentScenePhase = (phase: PresentScenePhase) => {
-    this.setState({ presentScenePhase: phase });
+    const isAdult =
+      this.state.protagonistAge === 'adult' ||
+      phase === 'ADULT_PROTAGONIST' ||
+      phase === 'ANNUAL_FESTIVAL_MONTAGE' ||
+      phase === 'CURRENT_YEAR' ||
+      phase === 'FINANCIAL_PROBLEM' ||
+      phase === 'COMPETITION_DISCOVERY' ||
+      phase === 'GAME_DEVELOPMENT_READY' ||
+      phase === 'GAME_DEVELOPMENT' ||
+      phase === 'COMPETITION_READY' ||
+      phase === 'COMPETITION' ||
+      phase === 'COMPETITION_WIN' ||
+      phase === 'PRIZE_RECEIVED' ||
+      phase === 'PANDAL_READY' ||
+      phase === 'PANDAL_BUILDING' ||
+      phase === 'PANDAL_COMPLETE' ||
+      phase === 'GANESH_CHATURTHI_READY' ||
+      phase === 'FESTIVAL_PREPARATION' ||
+      phase === 'GANESH_CHATURTHI_CELEBRATION' ||
+      phase === 'FINAL_CINEMATIC';
+
+    this.setState({
+      presentScenePhase: phase,
+      protagonistAge: isAdult ? 'adult' : this.state.protagonistAge,
+      isAdultProtagonist: isAdult,
+    });
   };
 
   setChildSitting = (sitting: boolean) => {
@@ -629,6 +755,23 @@ class GameStateStore {
 
   setScene = (scene: SceneId) => {
     this.setState({ currentScene: scene });
+  };
+
+  // ─── GAME ARCADE ─────────────────────────────
+  enterArcade = () => {
+    this.setState({
+      arcadeActive: true,
+      controlsLocked: true,
+      cinematicMode: true,
+    });
+  };
+
+  exitArcade = () => {
+    this.setState({
+      arcadeActive: false,
+      controlsLocked: true,
+      cinematicMode: true,
+    });
   };
 }
 

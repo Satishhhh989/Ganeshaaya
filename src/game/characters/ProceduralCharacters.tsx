@@ -7,6 +7,8 @@
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { gameStateStore } from '../core/GameState';
+import type { PlayerMotionState } from '../core/GameState';
 
 // ─── Color Palettes ─────────────────────────────────────────────────
 const CHILD_COLORS = {
@@ -21,15 +23,22 @@ const CHILD_COLORS = {
 };
 
 const DADA_COLORS = {
-  skin: '#d4a574',
-  hair: '#d4d0cc',          // White-grey hair
-  kurta: '#f5edd6',          // Cream/off-white kurta
-  kurtaAccent: '#e8dcc0',
-  dhoti: '#f0e8d0',
-  shoes: '#6b4f3a',
-  eyes: '#2a1a0a',
-  glasses: '#8b7355',
-  mouth: '#b8756e',
+  skin: '#ba825a',           // Warm, dignified elder Indian skin tone
+  skinShadow: '#9c6a46',     // Subtle wrinkle/shadow tone
+  hair: '#d4cfc8',           // Soft silver-grey elder hair
+  hairDark: '#857e76',       // Salt & pepper depth
+  eyebrow: '#7d7770',        // Gentle elder eyebrows
+  eyes: '#1e1008',           // Warm dark brown eyes
+  eyeSparkle: '#ffffff',     // Living eye reflection
+  moustache: '#b8b2aa',      // Dignified grey moustache
+  mouth: '#a8655c',          // Warm gentle smile
+  kurta: '#fbf8f0',          // Pristine handloom off-white cotton kurta
+  kurtaTrim: '#ede7db',      // Subtle cream collar and hem trim
+  kurtaButton: '#fffdfa',    // Pearl buttons
+  dhoti: '#f0ece3',          // Soft draped traditional dhoti
+  dhotiBorder: '#d8cfbf',    // Subtle dhoti fold line
+  sandalLeather: '#4e2d19',  // Handcrafted Indian leather chappal
+  sandalSole: '#28170c',     // Sandal sole
 };
 
 const ADULT_COLORS = {
@@ -62,12 +71,18 @@ export interface CharacterProps {
   isSitting?: boolean;
   isTalking?: boolean;
   isWorking?: boolean;
+  motionState?: PlayerMotionState;
+  isPraying?: boolean;
+  isCarrying?: boolean;
+  isInteracting?: boolean;
 }
 
-export function ChildCharacter({ speed = 0, isRunning = false, isSitting = false }: CharacterProps) {
+export function ChildCharacter({ speed = 0, isRunning = false, isSitting = false, isTalking = false }: CharacterProps) {
   const groupRef = useRef<THREE.Group>(null);
   const leftLegRef = useRef<THREE.Group>(null);
   const rightLegRef = useRef<THREE.Group>(null);
+  const leftKneeRef = useRef<THREE.Group>(null);
+  const rightKneeRef = useRef<THREE.Group>(null);
   const leftArmRef = useRef<THREE.Group>(null);
   const rightArmRef = useRef<THREE.Group>(null);
   const bodyRef = useRef<THREE.Group>(null);
@@ -84,45 +99,70 @@ export function ChildCharacter({ speed = 0, isRunning = false, isSitting = false
     mouth: createMaterial(CHILD_COLORS.mouth),
   }), []);
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const t = state.clock.getElapsedTime();
+    const motion = gameStateStore.playerMotion;
+    const currentVel = Math.abs(motion.velocity) > 0.05 ? motion.velocity : Math.abs(speed);
+    const isWalking = (currentVel > 0.12 || motion.state === 'CINEMATIC_WALK') && motion.state !== 'PRAY';
     const walkCycle = t * (isRunning ? 10 : 6.5);
-    const isWalking = speed > 0.2;
 
     if (isSitting) {
-      // ─── Sitting pose ───
+      // ─── Sitting pose: Hips ON cushion, knees bent 90° downward over sofa edge ───
       if (leftLegRef.current) {
-        leftLegRef.current.rotation.x = -Math.PI / 2.2;
-        leftLegRef.current.position.z = 0.04;
+        leftLegRef.current.rotation.x = -Math.PI / 2.05;
+        leftLegRef.current.position.z = 0.05;
       }
       if (rightLegRef.current) {
-        rightLegRef.current.rotation.x = -Math.PI / 2.2;
-        rightLegRef.current.position.z = 0.04;
+        rightLegRef.current.rotation.x = -Math.PI / 2.05;
+        rightLegRef.current.position.z = 0.05;
       }
-      if (leftArmRef.current) {
-        leftArmRef.current.rotation.x = -0.3;
-        leftArmRef.current.rotation.z = 0.1;
+      if (leftKneeRef.current) {
+        leftKneeRef.current.rotation.x = Math.PI / 2.1;
       }
-      if (rightArmRef.current) {
-        rightArmRef.current.rotation.x = -0.3;
-        rightArmRef.current.rotation.z = -0.1;
+      if (rightKneeRef.current) {
+        rightKneeRef.current.rotation.x = Math.PI / 2.1;
+      }
+      if (isTalking) {
+        if (leftArmRef.current) {
+          leftArmRef.current.rotation.x = Math.sin(t * 2.2) * 0.12 - 0.35;
+          leftArmRef.current.rotation.z = 0.15;
+        }
+        if (rightArmRef.current) {
+          rightArmRef.current.rotation.x = Math.sin(t * 2.6 + 0.8) * 0.12 - 0.35;
+          rightArmRef.current.rotation.z = -0.15;
+        }
+        if (headRef.current) {
+          headRef.current.rotation.x = Math.sin(t * 1.8) * 0.04 - 0.06;
+          headRef.current.rotation.y = Math.sin(t * 1.2) * 0.06 + 0.04;
+        }
+      } else {
+        if (leftArmRef.current) {
+          leftArmRef.current.rotation.x = -0.4;
+          leftArmRef.current.rotation.z = 0.12;
+        }
+        if (rightArmRef.current) {
+          rightArmRef.current.rotation.x = -0.4;
+          rightArmRef.current.rotation.z = -0.12;
+        }
+        if (headRef.current) {
+          headRef.current.rotation.x = Math.sin(t * 0.5) * 0.04 - 0.06;
+        }
       }
       if (bodyRef.current) {
-        bodyRef.current.position.y = -0.12;
-      }
-      if (headRef.current) {
-        headRef.current.rotation.x = Math.sin(t * 0.5) * 0.04;
+        bodyRef.current.position.y = 0.02; // Elevated onto the cushion surface, no sinking!
       }
       return;
     }
 
     if (isWalking) {
-      // ─── Walking animation ───
+      // ─── Walking animation with natural knee articulation ───
       const swing = Math.sin(walkCycle) * (isRunning ? 0.6 : 0.4);
       const armSwing = Math.sin(walkCycle) * (isRunning ? 0.55 : 0.35);
 
       if (leftLegRef.current) leftLegRef.current.rotation.x = swing;
       if (rightLegRef.current) rightLegRef.current.rotation.x = -swing;
+      if (leftKneeRef.current) leftKneeRef.current.rotation.x = Math.max(0, -swing * 0.55);
+      if (rightKneeRef.current) rightKneeRef.current.rotation.x = Math.max(0, swing * 0.55);
       if (leftArmRef.current) leftArmRef.current.rotation.x = -armSwing;
       if (rightArmRef.current) rightArmRef.current.rotation.x = armSwing;
 
@@ -136,24 +176,55 @@ export function ChildCharacter({ speed = 0, isRunning = false, isSitting = false
         headRef.current.rotation.x = Math.sin(walkCycle * 2) * 0.025;
       }
     } else {
-      // ─── Idle animation: gentle breathing ───
-      if (leftLegRef.current) leftLegRef.current.rotation.x *= 0.9;
-      if (rightLegRef.current) rightLegRef.current.rotation.x *= 0.9;
-      if (leftArmRef.current) {
-        leftArmRef.current.rotation.x = Math.sin(t * 1.2) * 0.03;
-        leftArmRef.current.rotation.z = 0.12;
+      // ─── Idle animation: gentle breathing & conversational gesture (firm snap to 0) ───
+      if (leftLegRef.current) {
+        leftLegRef.current.rotation.x = THREE.MathUtils.damp(leftLegRef.current.rotation.x, 0, 18, delta);
+        if (Math.abs(leftLegRef.current.rotation.x) < 0.001) leftLegRef.current.rotation.x = 0;
       }
-      if (rightArmRef.current) {
-        rightArmRef.current.rotation.x = Math.sin(t * 1.2 + 0.5) * 0.03;
-        rightArmRef.current.rotation.z = -0.12;
+      if (rightLegRef.current) {
+        rightLegRef.current.rotation.x = THREE.MathUtils.damp(rightLegRef.current.rotation.x, 0, 18, delta);
+        if (Math.abs(rightLegRef.current.rotation.x) < 0.001) rightLegRef.current.rotation.x = 0;
       }
+      if (leftKneeRef.current) {
+        leftKneeRef.current.rotation.x = THREE.MathUtils.damp(leftKneeRef.current.rotation.x, 0, 18, delta);
+        if (Math.abs(leftKneeRef.current.rotation.x) < 0.001) leftKneeRef.current.rotation.x = 0;
+      }
+      if (rightKneeRef.current) {
+        rightKneeRef.current.rotation.x = THREE.MathUtils.damp(rightKneeRef.current.rotation.x, 0, 18, delta);
+        if (Math.abs(rightKneeRef.current.rotation.x) < 0.001) rightKneeRef.current.rotation.x = 0;
+      }
+
+      if (isTalking) {
+        if (leftArmRef.current) {
+          leftArmRef.current.rotation.x = Math.sin(t * 2.4) * 0.14 - 0.12;
+          leftArmRef.current.rotation.z = 0.16;
+        }
+        if (rightArmRef.current) {
+          rightArmRef.current.rotation.x = Math.sin(t * 2.8 + 0.6) * 0.14 - 0.12;
+          rightArmRef.current.rotation.z = -0.16;
+        }
+        if (headRef.current) {
+          headRef.current.rotation.y = Math.sin(t * 1.5) * 0.08;
+          headRef.current.rotation.x = Math.sin(t * 2.2) * 0.04 - 0.04;
+        }
+      } else {
+        if (leftArmRef.current) {
+          leftArmRef.current.rotation.x = Math.sin(t * 1.2) * 0.03;
+          leftArmRef.current.rotation.z = 0.12;
+        }
+        if (rightArmRef.current) {
+          rightArmRef.current.rotation.x = Math.sin(t * 1.2 + 0.5) * 0.03;
+          rightArmRef.current.rotation.z = -0.12;
+        }
+        if (headRef.current) {
+          headRef.current.rotation.y = Math.sin(t * 0.4) * 0.06;
+          headRef.current.rotation.x = Math.sin(t * 0.7) * 0.03;
+        }
+      }
+
       if (bodyRef.current) {
         bodyRef.current.position.y = Math.sin(t * 1.5) * 0.006;
         bodyRef.current.rotation.z = 0;
-      }
-      if (headRef.current) {
-        headRef.current.rotation.y = Math.sin(t * 0.4) * 0.06;
-        headRef.current.rotation.x = Math.sin(t * 0.7) * 0.03;
       }
     }
   });
@@ -243,29 +314,38 @@ export function ChildCharacter({ speed = 0, isRunning = false, isSitting = false
         {/* Left leg */}
         <group ref={leftLegRef} position={[-0.055, 0.42, 0]}>
           {/* Thigh */}
-          <mesh position={[0, -0.08, 0]} material={materials.pants} castShadow>
-            <capsuleGeometry args={[0.042, 0.1, 6, 8]} />
+          <mesh position={[0, -0.06, 0]} material={materials.pants} castShadow>
+            <capsuleGeometry args={[0.04, 0.08, 6, 8]} />
           </mesh>
-          {/* Shin */}
-          <mesh position={[0, -0.2, 0]} material={materials.pants} castShadow>
-            <capsuleGeometry args={[0.035, 0.1, 6, 8]} />
-          </mesh>
-          {/* Shoe */}
-          <mesh position={[0, -0.3, 0.015]} material={materials.shoes} castShadow>
-            <boxGeometry args={[0.055, 0.03, 0.08]} />
-          </mesh>
+          {/* Knee joint & lower leg */}
+          <group ref={leftKneeRef} position={[0, -0.12, 0]}>
+            {/* Shin */}
+            <mesh position={[0, -0.08, 0]} material={materials.pants} castShadow>
+              <capsuleGeometry args={[0.034, 0.08, 6, 8]} />
+            </mesh>
+            {/* Shoe */}
+            <mesh position={[0, -0.18, 0.015]} material={materials.shoes} castShadow>
+              <boxGeometry args={[0.055, 0.03, 0.08]} />
+            </mesh>
+          </group>
         </group>
         {/* Right leg */}
         <group ref={rightLegRef} position={[0.055, 0.42, 0]}>
-          <mesh position={[0, -0.08, 0]} material={materials.pants} castShadow>
-            <capsuleGeometry args={[0.042, 0.1, 6, 8]} />
+          {/* Thigh */}
+          <mesh position={[0, -0.06, 0]} material={materials.pants} castShadow>
+            <capsuleGeometry args={[0.04, 0.08, 6, 8]} />
           </mesh>
-          <mesh position={[0, -0.2, 0]} material={materials.pants} castShadow>
-            <capsuleGeometry args={[0.035, 0.1, 6, 8]} />
-          </mesh>
-          <mesh position={[0, -0.3, 0.015]} material={materials.shoes} castShadow>
-            <boxGeometry args={[0.055, 0.03, 0.08]} />
-          </mesh>
+          {/* Knee joint & lower leg */}
+          <group ref={rightKneeRef} position={[0, -0.12, 0]}>
+            {/* Shin */}
+            <mesh position={[0, -0.08, 0]} material={materials.pants} castShadow>
+              <capsuleGeometry args={[0.034, 0.08, 6, 8]} />
+            </mesh>
+            {/* Shoe */}
+            <mesh position={[0, -0.18, 0.015]} material={materials.shoes} castShadow>
+              <boxGeometry args={[0.055, 0.03, 0.08]} />
+            </mesh>
+          </group>
         </group>
       </group>
     </group>
@@ -278,230 +358,373 @@ export function DadaCharacter({ speed = 0, isSitting = false, isTalking = false 
   const groupRef = useRef<THREE.Group>(null);
   const leftLegRef = useRef<THREE.Group>(null);
   const rightLegRef = useRef<THREE.Group>(null);
+  const leftKneeRef = useRef<THREE.Group>(null);
+  const rightKneeRef = useRef<THREE.Group>(null);
   const leftArmRef = useRef<THREE.Group>(null);
   const rightArmRef = useRef<THREE.Group>(null);
   const bodyRef = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Group>(null);
 
   const materials = useMemo(() => ({
-    skin: createMaterial(DADA_COLORS.skin),
-    hair: createMaterial(DADA_COLORS.hair),
-    kurta: createMaterial(DADA_COLORS.kurta),
-    kurtaAccent: createMaterial(DADA_COLORS.kurtaAccent),
-    dhoti: createMaterial(DADA_COLORS.dhoti),
-    shoes: createMaterial(DADA_COLORS.shoes),
-    eyes: createMaterial(DADA_COLORS.eyes, { roughness: 0.3 }),
-    glasses: createMaterial(DADA_COLORS.glasses, { roughness: 0.2 }),
-    mouth: createMaterial(DADA_COLORS.mouth),
+    skin: createMaterial(DADA_COLORS.skin, { roughness: 0.65 }),
+    skinShadow: createMaterial(DADA_COLORS.skinShadow, { roughness: 0.72 }),
+    hair: createMaterial(DADA_COLORS.hair, { roughness: 0.85 }),
+    hairDark: createMaterial(DADA_COLORS.hairDark, { roughness: 0.88 }),
+    eyebrow: createMaterial(DADA_COLORS.eyebrow, { roughness: 0.85 }),
+    eyes: createMaterial(DADA_COLORS.eyes, { roughness: 0.25 }),
+    eyeSparkle: createMaterial(DADA_COLORS.eyeSparkle, { roughness: 0.1 }),
+    moustache: createMaterial(DADA_COLORS.moustache, { roughness: 0.82 }),
+    mouth: createMaterial(DADA_COLORS.mouth, { roughness: 0.65 }),
+    kurta: createMaterial(DADA_COLORS.kurta, { roughness: 0.78 }),
+    kurtaTrim: createMaterial(DADA_COLORS.kurtaTrim, { roughness: 0.75 }),
+    kurtaButton: createMaterial(DADA_COLORS.kurtaButton, { roughness: 0.3 }),
+    dhoti: createMaterial(DADA_COLORS.dhoti, { roughness: 0.82 }),
+    dhotiBorder: createMaterial(DADA_COLORS.dhotiBorder, { roughness: 0.82 }),
+    sandalLeather: createMaterial(DADA_COLORS.sandalLeather, { roughness: 0.6 }),
+    sandalSole: createMaterial(DADA_COLORS.sandalSole, { roughness: 0.7 }),
   }), []);
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
-    const walkCycle = t * 4.5; // Slower, elder pace
+    const walkCycle = t * 4.2; // Dignified elder gait
     const isWalking = speed > 0.15;
 
     if (isSitting) {
-      // ─── Sitting pose ───
+      // ─── Sitting pose: Hips resting on sofa cushion, knees bent downward 90° ───
       if (leftLegRef.current) {
-        leftLegRef.current.rotation.x = -Math.PI / 2.2;
-        leftLegRef.current.position.z = 0.06;
+        leftLegRef.current.rotation.x = -Math.PI / 2.05;
+        leftLegRef.current.position.z = 0.05;
       }
       if (rightLegRef.current) {
-        rightLegRef.current.rotation.x = -Math.PI / 2.2;
-        rightLegRef.current.position.z = 0.06;
+        rightLegRef.current.rotation.x = -Math.PI / 2.05;
+        rightLegRef.current.position.z = 0.05;
       }
-      if (leftArmRef.current) {
-        leftArmRef.current.rotation.x = isTalking ? Math.sin(t * 2.5) * 0.2 - 0.2 : -0.25;
-        leftArmRef.current.rotation.z = 0.1;
+      if (leftKneeRef.current) {
+        leftKneeRef.current.rotation.x = Math.PI / 2.1;
       }
-      if (rightArmRef.current) {
-        rightArmRef.current.rotation.x = isTalking ? Math.sin(t * 3) * 0.15 - 0.15 : -0.2;
-        rightArmRef.current.rotation.z = -0.1;
+      if (rightKneeRef.current) {
+        rightKneeRef.current.rotation.x = Math.PI / 2.1;
       }
+
+      if (isTalking) {
+        // Expressive grandfatherly storytelling gestures while seated
+        if (leftArmRef.current) {
+          leftArmRef.current.rotation.x = Math.sin(t * 2.2) * 0.18 - 0.35;
+          leftArmRef.current.rotation.z = 0.16 + Math.sin(t * 1.8) * 0.04;
+        }
+        if (rightArmRef.current) {
+          rightArmRef.current.rotation.x = Math.sin(t * 2.6 + 0.8) * 0.22 - 0.35;
+          rightArmRef.current.rotation.z = -0.16 - Math.sin(t * 2.1) * 0.04;
+        }
+      } else {
+        // Peaceful hands resting naturally on lap / thighs
+        if (leftArmRef.current) {
+          leftArmRef.current.rotation.x = -0.42;
+          leftArmRef.current.rotation.z = 0.14;
+        }
+        if (rightArmRef.current) {
+          rightArmRef.current.rotation.x = -0.42;
+          rightArmRef.current.rotation.z = -0.14;
+        }
+      }
+
       if (bodyRef.current) {
-        bodyRef.current.position.y = -0.15;
+        bodyRef.current.position.y = 0.02;
+        bodyRef.current.rotation.x = 0.02;
       }
       if (headRef.current) {
-        headRef.current.rotation.x = isTalking ? Math.sin(t * 2) * 0.06 : Math.sin(t * 0.5) * 0.03;
-        headRef.current.rotation.y = isTalking ? Math.sin(t * 1.5) * 0.08 : Math.sin(t * 0.3) * 0.04;
+        headRef.current.rotation.x = isTalking ? Math.sin(t * 2.0) * 0.05 : Math.sin(t * 0.6) * 0.025;
+        headRef.current.rotation.y = isTalking ? Math.sin(t * 1.4) * 0.08 + 0.06 : Math.sin(t * 0.4) * 0.03 + 0.06;
       }
       return;
     }
 
     if (isWalking) {
-      // ─── Walking (slower, elderly gait) ───
-      const swing = Math.sin(walkCycle) * 0.3;
-      const armSwing = Math.sin(walkCycle) * 0.2;
+      // ─── Walking: smooth elderly gait with natural knee articulation ───
+      const swing = Math.sin(walkCycle) * 0.32;
+      const armSwing = Math.sin(walkCycle) * 0.22;
 
       if (leftLegRef.current) leftLegRef.current.rotation.x = swing;
       if (rightLegRef.current) rightLegRef.current.rotation.x = -swing;
-      if (leftArmRef.current) leftArmRef.current.rotation.x = -armSwing;
-      if (rightArmRef.current) rightArmRef.current.rotation.x = armSwing;
+      if (leftKneeRef.current) leftKneeRef.current.rotation.x = Math.max(0, -swing * 0.55);
+      if (rightKneeRef.current) rightKneeRef.current.rotation.x = Math.max(0, swing * 0.55);
+      if (leftArmRef.current) {
+        leftArmRef.current.rotation.x = -armSwing;
+        leftArmRef.current.rotation.z = -0.09;
+      }
+      if (rightArmRef.current) {
+        rightArmRef.current.rotation.x = armSwing;
+        rightArmRef.current.rotation.z = 0.09;
+      }
 
       if (bodyRef.current) {
         bodyRef.current.position.y = Math.abs(Math.sin(walkCycle * 2)) * 0.012;
         bodyRef.current.rotation.z = Math.sin(walkCycle) * 0.02;
-        bodyRef.current.rotation.x = 0.05; // Slight forward lean
+        bodyRef.current.rotation.x = 0.04; // Natural elder forward lean
       }
       if (headRef.current) {
-        headRef.current.rotation.x = -0.04; // Compensate lean
+        headRef.current.rotation.x = -0.03;
       }
     } else {
-      // ─── Idle / Standing talk ───
+      // ─── Idle / Standing conversational presence ───
       if (leftLegRef.current) leftLegRef.current.rotation.x *= 0.92;
       if (rightLegRef.current) rightLegRef.current.rotation.x *= 0.92;
+      if (leftKneeRef.current) leftKneeRef.current.rotation.x *= 0.92;
+      if (rightKneeRef.current) rightKneeRef.current.rotation.x *= 0.92;
 
       if (isTalking) {
-        // Expressive talk gestures
+        // Expressive storytelling gestures with open, warm stance
         if (leftArmRef.current) {
           leftArmRef.current.rotation.x = Math.sin(t * 2.2) * 0.18 - 0.05;
-          leftArmRef.current.rotation.z = 0.15 + Math.sin(t * 1.8) * 0.05;
+          leftArmRef.current.rotation.z = -0.16 + Math.sin(t * 1.8) * 0.04;
         }
         if (rightArmRef.current) {
           rightArmRef.current.rotation.x = Math.sin(t * 2.8 + 1) * 0.22 - 0.08;
-          rightArmRef.current.rotation.z = -0.15 - Math.sin(t * 2) * 0.05;
+          rightArmRef.current.rotation.z = 0.16 - Math.sin(t * 2) * 0.04;
         }
         if (headRef.current) {
-          headRef.current.rotation.y = Math.sin(t * 1.4) * 0.1;
-          headRef.current.rotation.x = Math.sin(t * 2) * 0.05;
+          headRef.current.rotation.y = Math.sin(t * 1.4) * 0.08;
+          headRef.current.rotation.x = Math.sin(t * 2) * 0.04;
         }
       } else {
-        // Peaceful idle
+        // Peaceful, warm standing idle with natural arm clearance
         if (leftArmRef.current) {
-          leftArmRef.current.rotation.x = Math.sin(t * 0.8) * 0.03;
-          leftArmRef.current.rotation.z = 0.15;
+          leftArmRef.current.rotation.x = Math.sin(t * 0.9) * 0.03;
+          leftArmRef.current.rotation.z = -0.10;
         }
         if (rightArmRef.current) {
-          rightArmRef.current.rotation.x = Math.sin(t * 0.8 + 0.5) * 0.03;
-          rightArmRef.current.rotation.z = -0.15;
+          rightArmRef.current.rotation.x = Math.sin(t * 0.9 + 0.6) * 0.03;
+          rightArmRef.current.rotation.z = 0.10;
         }
         if (headRef.current) {
-          headRef.current.rotation.y = Math.sin(t * 0.3) * 0.05;
-          headRef.current.rotation.x = Math.sin(t * 0.5) * 0.025;
+          headRef.current.rotation.y = Math.sin(t * 0.35) * 0.04;
+          headRef.current.rotation.x = Math.sin(t * 0.5) * 0.02;
         }
       }
 
       if (bodyRef.current) {
-        bodyRef.current.position.y = Math.sin(t * 1.0) * 0.004;
+        bodyRef.current.position.y = Math.sin(t * 1.1) * 0.005;
         bodyRef.current.rotation.z = 0;
-        bodyRef.current.rotation.x = 0.02; // Slight natural hunch
+        bodyRef.current.rotation.x = 0.02;
       }
     }
   });
 
-  // Character total height: ~1.65m (adult grandfather)
+  // Character total height: ~1.65m (authentic grandfather proportions)
   return (
     <group ref={groupRef}>
       <group ref={bodyRef}>
-        {/* ─── TORSO (Cream Kurta) ─── */}
-        <mesh position={[0, 0.88, 0]} material={materials.kurta} castShadow receiveShadow>
-          <capsuleGeometry args={[0.15, 0.32, 8, 16]} />
+        {/* ─── UPPER TORSO & KURTA (Smooth, contoured, no boxy edges) ─── */}
+        {/* Main Kurta Torso - tailored dignified grandfather silhouette */}
+        <mesh position={[0, 1.05, 0]} material={materials.kurta} castShadow receiveShadow>
+          <cylinderGeometry args={[0.155, 0.170, 0.38, 20]} />
         </mesh>
-        {/* Kurta lower drape */}
-        <mesh position={[0, 0.66, 0]} material={materials.kurta} castShadow>
-          <cylinderGeometry args={[0.14, 0.17, 0.12, 12]} />
+        {/* Gentle rounded shoulder yoke */}
+        <mesh position={[0, 1.20, 0]} scale={[1.30, 1.0, 0.90]} material={materials.kurta} castShadow receiveShadow>
+          <capsuleGeometry args={[0.115, 0.18, 10, 16]} />
         </mesh>
-        {/* Collar / nehru band */}
-        <mesh position={[0, 1.08, 0]} material={materials.kurtaAccent} castShadow>
-          <cylinderGeometry args={[0.078, 0.09, 0.04, 12]} />
+        {/* Soft left & right shoulder caps connecting naturally to arm sleeves */}
+        <mesh position={[-0.215, 1.18, 0]} material={materials.kurta} castShadow>
+          <sphereGeometry args={[0.062, 14, 12]} />
+        </mesh>
+        <mesh position={[0.215, 1.18, 0]} material={materials.kurta} castShadow>
+          <sphereGeometry args={[0.062, 14, 12]} />
         </mesh>
 
-        {/* ─── HEAD ─── */}
-        <group ref={headRef} position={[0, 1.22, 0]}>
-          {/* Head sphere */}
+        {/* Kurta Lower Skirt / Drapes hanging straight over dhoti toward knees */}
+        <mesh position={[0, 0.72, 0]} material={materials.kurta} castShadow receiveShadow>
+          <cylinderGeometry args={[0.170, 0.190, 0.32, 20]} />
+        </mesh>
+
+        {/* Clean Nehru / Mandarin Collar */}
+        <mesh position={[0, 1.25, 0]} material={materials.kurtaTrim} castShadow>
+          <cylinderGeometry args={[0.062, 0.072, 0.04, 18]} />
+        </mesh>
+
+        {/* Neat front placket & mother-of-pearl buttons */}
+        <mesh position={[0, 1.10, 0.17]} material={materials.kurtaTrim}>
+          <boxGeometry args={[0.024, 0.22, 0.006]} />
+        </mesh>
+        <mesh position={[0, 1.18, 0.174]} material={materials.kurtaButton}>
+          <sphereGeometry args={[0.004, 8, 8]} />
+        </mesh>
+        <mesh position={[0, 1.11, 0.174]} material={materials.kurtaButton}>
+          <sphereGeometry args={[0.004, 8, 8]} />
+        </mesh>
+        <mesh position={[0, 1.04, 0.174]} material={materials.kurtaButton}>
+          <sphereGeometry args={[0.004, 8, 8]} />
+        </mesh>
+
+        {/* ─── NECK ─── */}
+        <mesh position={[0, 1.28, 0]} material={materials.skin} castShadow>
+          <cylinderGeometry args={[0.048, 0.056, 0.08, 16]} />
+        </mesh>
+
+        {/* ─── HEAD & EXPRESSIVE GRANDFATHER FACE ─── */}
+        <group ref={headRef} position={[0, 1.40, 0.01]}>
+          {/* Head cranium */}
           <mesh material={materials.skin} castShadow receiveShadow>
-            <sphereGeometry args={[0.12, 16, 14]} />
+            <sphereGeometry args={[0.115, 20, 18]} />
           </mesh>
-          {/* White/grey hair */}
-          <mesh position={[0, 0.04, -0.01]} material={materials.hair} castShadow>
-            <sphereGeometry args={[0.122, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.52]} />
+
+          {/* Receding elder hairline - Silver-grey hair naturally wrapping around temples & nape */}
+          <mesh position={[0, 0.015, -0.02]} scale={[1.02, 0.98, 1.04]} material={materials.hair} castShadow>
+            <sphereGeometry args={[0.116, 20, 14, 0, Math.PI * 2, Math.PI * 0.22, Math.PI * 0.52]} />
           </mesh>
-          {/* Beard/jawline */}
-          <mesh position={[0, -0.06, 0.04]} material={materials.hair}>
-            <sphereGeometry args={[0.07, 10, 8, 0, Math.PI * 2, Math.PI * 0.3, Math.PI * 0.5]} />
+          {/* Temple hair fullness */}
+          <mesh position={[-0.106, -0.005, -0.015]} scale={[0.75, 1.1, 1.0]} material={materials.hair}>
+            <sphereGeometry args={[0.025, 10, 10]} />
           </mesh>
+          <mesh position={[0.106, -0.005, -0.015]} scale={[0.75, 1.1, 1.0]} material={materials.hair}>
+            <sphereGeometry args={[0.025, 10, 10]} />
+          </mesh>
+
+          {/* Warm, Kind Grandfather Eyes (clean, expressive, charming like Vinay's eyes) */}
           {/* Left eye */}
-          <mesh position={[-0.042, 0.015, 0.105]} material={materials.eyes}>
-            <sphereGeometry args={[0.014, 8, 8]} />
+          <mesh position={[-0.042, 0.015, 0.104]} material={materials.eyes}>
+            <sphereGeometry args={[0.013, 12, 12]} />
+          </mesh>
+          <mesh position={[-0.038, 0.019, 0.114]} material={materials.eyeSparkle}>
+            <sphereGeometry args={[0.0035, 6, 6]} />
           </mesh>
           {/* Right eye */}
-          <mesh position={[0.042, 0.015, 0.105]} material={materials.eyes}>
-            <sphereGeometry args={[0.014, 8, 8]} />
+          <mesh position={[0.042, 0.015, 0.104]} material={materials.eyes}>
+            <sphereGeometry args={[0.013, 12, 12]} />
           </mesh>
-          {/* Glasses frame (simple circles) */}
-          <mesh position={[-0.042, 0.015, 0.11]} material={materials.glasses}>
-            <torusGeometry args={[0.022, 0.003, 6, 16]} />
+          <mesh position={[0.046, 0.019, 0.114]} material={materials.eyeSparkle}>
+            <sphereGeometry args={[0.0035, 6, 6]} />
           </mesh>
-          <mesh position={[0.042, 0.015, 0.11]} material={materials.glasses}>
-            <torusGeometry args={[0.022, 0.003, 6, 16]} />
+
+          {/* Soft, gentle grey eyebrows curving with grandfatherly warmth */}
+          <mesh position={[-0.044, 0.036, 0.104]} rotation={[0, 0, -0.14]} material={materials.eyebrow}>
+            <capsuleGeometry args={[0.004, 0.022, 6, 8]} />
           </mesh>
-          {/* Glasses bridge */}
-          <mesh position={[0, 0.015, 0.115]} material={materials.glasses}>
-            <boxGeometry args={[0.04, 0.003, 0.003]} />
+          <mesh position={[0.044, 0.036, 0.104]} rotation={[0, 0, 0.14]} material={materials.eyebrow}>
+            <capsuleGeometry args={[0.004, 0.022, 6, 8]} />
           </mesh>
-          {/* Nose */}
-          <mesh position={[0, -0.005, 0.115]} material={materials.skin}>
-            <sphereGeometry args={[0.015, 6, 6]} />
+
+          {/* Gentle elder laugh lines / eyelid crease */}
+          <mesh position={[-0.042, 0.026, 0.106]} material={materials.skinShadow}>
+            <boxGeometry args={[0.020, 0.003, 0.004]} />
           </mesh>
-          {/* Mouth */}
-          <mesh position={[0, -0.04, 0.108]} material={materials.mouth}>
-            <boxGeometry args={[0.032, 0.005, 0.005]} />
+          <mesh position={[0.042, 0.026, 0.106]} material={materials.skinShadow}>
+            <boxGeometry args={[0.020, 0.003, 0.004]} />
           </mesh>
-          {/* Ears */}
-          <mesh position={[-0.115, 0, 0]} material={materials.skin}>
-            <sphereGeometry args={[0.022, 6, 6]} />
+
+          {/* Friendly, rounded Indian grandfather nose */}
+          <mesh position={[0, -0.002, 0.114]} material={materials.skin}>
+            <sphereGeometry args={[0.014, 10, 10]} />
           </mesh>
-          <mesh position={[0.115, 0, 0]} material={materials.skin}>
-            <sphereGeometry args={[0.022, 6, 6]} />
+
+          {/* Dignified Indian Moustache (neat, curving softly over upper lip, NOT fangs) */}
+          <mesh position={[0, -0.022, 0.112]} rotation={[0, 0, Math.PI / 2]} material={materials.moustache}>
+            <capsuleGeometry args={[0.0085, 0.046, 8, 10]} />
+          </mesh>
+          {/* Moustache wings curving gently downwards */}
+          <mesh position={[-0.028, -0.028, 0.105]} rotation={[0, 0, -0.55]} material={materials.moustache}>
+            <capsuleGeometry args={[0.006, 0.020, 6, 8]} />
+          </mesh>
+          <mesh position={[0.028, -0.028, 0.105]} rotation={[0, 0, 0.55]} material={materials.moustache}>
+            <capsuleGeometry args={[0.006, 0.020, 6, 8]} />
+          </mesh>
+
+          {/* Warm Grandfather Smile */}
+          <mesh position={[0, -0.042, 0.102]} material={materials.mouth}>
+            <boxGeometry args={[0.028, 0.005, 0.006]} />
+          </mesh>
+
+          {/* Natural Ears */}
+          <mesh position={[-0.112, 0.004, -0.005]} rotation={[0, -0.15, 0]} material={materials.skin}>
+            <sphereGeometry args={[0.020, 8, 8]} />
+          </mesh>
+          <mesh position={[0.112, 0.004, -0.005]} rotation={[0, 0.15, 0]} material={materials.skin}>
+            <sphereGeometry args={[0.020, 8, 8]} />
           </mesh>
         </group>
 
-        {/* ─── ARMS ─── */}
-        <group ref={leftArmRef} position={[-0.19, 0.98, 0]}>
-          <mesh position={[0, -0.1, 0]} material={materials.kurta} castShadow>
-            <capsuleGeometry args={[0.038, 0.1, 6, 8]} />
+        {/* ─── ARMS: SLEEVED HANDLOOM KURTA & ELDER HANDS ─── */}
+        {/* Left Arm: Natural comfortable clearance from torso */}
+        <group ref={leftArmRef} position={[-0.225, 1.16, 0]}>
+          {/* Kurta Sleeve (upper arm) */}
+          <mesh position={[0, -0.10, 0]} material={materials.kurta} castShadow>
+            <cylinderGeometry args={[0.048, 0.040, 0.18, 14]} />
           </mesh>
-          <mesh position={[0, -0.24, 0]} material={materials.skin} castShadow>
-            <capsuleGeometry args={[0.032, 0.1, 6, 8]} />
+          {/* Forearm (warm elder skin) */}
+          <mesh position={[0, -0.22, 0]} material={materials.skin} castShadow>
+            <capsuleGeometry args={[0.026, 0.12, 8, 10]} />
           </mesh>
-          <mesh position={[0, -0.33, 0]} material={materials.skin}>
-            <sphereGeometry args={[0.028, 6, 6]} />
-          </mesh>
-        </group>
-        <group ref={rightArmRef} position={[0.19, 0.98, 0]}>
-          <mesh position={[0, -0.1, 0]} material={materials.kurta} castShadow>
-            <capsuleGeometry args={[0.038, 0.1, 6, 8]} />
-          </mesh>
-          <mesh position={[0, -0.24, 0]} material={materials.skin} castShadow>
-            <capsuleGeometry args={[0.032, 0.1, 6, 8]} />
-          </mesh>
-          <mesh position={[0, -0.33, 0]} material={materials.skin}>
-            <sphereGeometry args={[0.028, 6, 6]} />
+          {/* Hand */}
+          <mesh position={[0, -0.31, 0]} material={materials.skin}>
+            <sphereGeometry args={[0.024, 8, 8]} />
           </mesh>
         </group>
 
-        {/* ─── LEGS (Dhoti) ─── */}
-        <group ref={leftLegRef} position={[-0.065, 0.58, 0]}>
-          <mesh position={[0, -0.1, 0]} material={materials.dhoti} castShadow>
-            <capsuleGeometry args={[0.05, 0.14, 6, 8]} />
+        {/* Right Arm: Symmetrical natural clearance from body */}
+        <group ref={rightArmRef} position={[0.225, 1.16, 0]}>
+          {/* Kurta Sleeve (upper arm) */}
+          <mesh position={[0, -0.10, 0]} material={materials.kurta} castShadow>
+            <cylinderGeometry args={[0.048, 0.040, 0.18, 14]} />
           </mesh>
-          <mesh position={[0, -0.27, 0]} material={materials.dhoti} castShadow>
-            <capsuleGeometry args={[0.042, 0.12, 6, 8]} />
+          {/* Forearm (warm elder skin) */}
+          <mesh position={[0, -0.22, 0]} material={materials.skin} castShadow>
+            <capsuleGeometry args={[0.026, 0.12, 8, 10]} />
           </mesh>
-          <mesh position={[0, -0.38, 0.02]} material={materials.shoes} castShadow>
-            <boxGeometry args={[0.065, 0.035, 0.095]} />
+          {/* Hand */}
+          <mesh position={[0, -0.31, 0]} material={materials.skin}>
+            <sphereGeometry args={[0.024, 8, 8]} />
           </mesh>
         </group>
-        <group ref={rightLegRef} position={[0.065, 0.58, 0]}>
-          <mesh position={[0, -0.1, 0]} material={materials.dhoti} castShadow>
-            <capsuleGeometry args={[0.05, 0.14, 6, 8]} />
+
+        {/* ─── LEGS: PLEATED DRAPED DHOTI & LEATHER CHAPPALS ─── */}
+        {/* Center Dhoti Pleat Fold (Patli) */}
+        <mesh position={[0, 0.44, 0.08]} material={materials.dhotiBorder} castShadow>
+          <boxGeometry args={[0.055, 0.28, 0.02]} />
+        </mesh>
+
+        {/* Left Leg with Articulated Knee Joint */}
+        <group ref={leftLegRef} position={[-0.075, 0.58, 0]}>
+          {/* Thigh (Draped Dhoti) */}
+          <mesh position={[0, -0.11, 0]} material={materials.dhoti} castShadow>
+            <capsuleGeometry args={[0.052, 0.15, 8, 12]} />
           </mesh>
-          <mesh position={[0, -0.27, 0]} material={materials.dhoti} castShadow>
-            <capsuleGeometry args={[0.042, 0.12, 6, 8]} />
+          {/* Knee joint & lower leg */}
+          <group ref={leftKneeRef} position={[0, -0.22, 0]}>
+            {/* Shin (Dhoti drape) */}
+            <mesh position={[0, -0.11, 0]} material={materials.dhoti} castShadow>
+              <capsuleGeometry args={[0.044, 0.13, 8, 12]} />
+            </mesh>
+            {/* Handcrafted Indian Leather Chappal */}
+            <mesh position={[0, -0.20, 0.025]} material={materials.sandalLeather} castShadow>
+              <boxGeometry args={[0.062, 0.025, 0.11]} />
+            </mesh>
+            {/* Sandal Sole */}
+            <mesh position={[0, -0.215, 0.025]} material={materials.sandalSole}>
+              <boxGeometry args={[0.065, 0.010, 0.114]} />
+            </mesh>
+          </group>
+        </group>
+
+        {/* Right Leg with Articulated Knee Joint */}
+        <group ref={rightLegRef} position={[0.075, 0.58, 0]}>
+          {/* Thigh (Draped Dhoti) */}
+          <mesh position={[0, -0.11, 0]} material={materials.dhoti} castShadow>
+            <capsuleGeometry args={[0.052, 0.15, 8, 12]} />
           </mesh>
-          <mesh position={[0, -0.38, 0.02]} material={materials.shoes} castShadow>
-            <boxGeometry args={[0.065, 0.035, 0.095]} />
-          </mesh>
+          {/* Knee joint & lower leg */}
+          <group ref={rightKneeRef} position={[0, -0.22, 0]}>
+            {/* Shin (Dhoti drape) */}
+            <mesh position={[0, -0.11, 0]} material={materials.dhoti} castShadow>
+              <capsuleGeometry args={[0.044, 0.13, 8, 12]} />
+            </mesh>
+            {/* Handcrafted Indian Leather Chappal */}
+            <mesh position={[0, -0.20, 0.025]} material={materials.sandalLeather} castShadow>
+              <boxGeometry args={[0.062, 0.025, 0.11]} />
+            </mesh>
+            {/* Sandal Sole */}
+            <mesh position={[0, -0.215, 0.025]} material={materials.sandalSole}>
+              <boxGeometry args={[0.065, 0.010, 0.114]} />
+            </mesh>
+          </group>
         </group>
       </group>
     </group>
@@ -515,10 +738,15 @@ export function AdultCharacter({
   isSitting = false,
   isTalking = false,
   isWorking = false,
+  isPraying = false,
+  isCarrying = false,
+  isInteracting = false,
 }: CharacterProps) {
   const groupRef = useRef<THREE.Group>(null);
   const leftLegRef = useRef<THREE.Group>(null);
   const rightLegRef = useRef<THREE.Group>(null);
+  const leftKneeRef = useRef<THREE.Group>(null);
+  const rightKneeRef = useRef<THREE.Group>(null);
   const leftArmRef = useRef<THREE.Group>(null);
   const rightArmRef = useRef<THREE.Group>(null);
   const bodyRef = useRef<THREE.Group>(null);
@@ -539,20 +767,43 @@ export function AdultCharacter({
     []
   );
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const t = state.clock.getElapsedTime();
-    const walkCycle = t * (isRunning ? 11 : 7.2);
-    const isWalking = speed > 0.2;
+    const motion = gameStateStore.playerMotion;
+    const currentVelocity = Math.abs(motion.velocity) > 0.05 ? motion.velocity : Math.abs(speed);
+    const motionState = motion.state;
+    const praying = isPraying || motion.isPraying || motionState === 'PRAY';
+    const carrying = isCarrying || motion.isCarrying || motionState === 'CARRY';
+    const interacting = isInteracting || motion.isInteracting || motionState === 'INTERACT';
+    const isCinematicWalk = motionState === 'CINEMATIC_WALK';
+
+    // Strict velocity rules:
+    // velocity ≈ 0 -> IDLE
+    // walking velocity -> WALK
+    // running velocity -> RUN
+    // interacting -> INTERACT
+    // praying -> PRAY
+    // carrying -> CARRY
+    // scripted cinematic walking -> CINEMATIC_WALK
+    const isActuallyMoving = (currentVelocity > 0.12 || isCinematicWalk) && !praying && !interacting;
+    const isRunningActual = !isCinematicWalk && (isRunning || currentVelocity > 3.0);
+    const walkCycle = t * (isRunningActual ? 11 : 7.2);
 
     if (isSitting) {
-      // Sitting at desk or sofa
+      // Sitting at desk chair or sofa
       if (leftLegRef.current) {
-        leftLegRef.current.rotation.x = -Math.PI / 2.15;
-        leftLegRef.current.position.z = 0.08;
+        leftLegRef.current.rotation.x = -Math.PI / 2.05;
+        leftLegRef.current.position.z = 0.04;
       }
       if (rightLegRef.current) {
-        rightLegRef.current.rotation.x = -Math.PI / 2.15;
-        rightLegRef.current.position.z = 0.08;
+        rightLegRef.current.rotation.x = -Math.PI / 2.05;
+        rightLegRef.current.position.z = 0.04;
+      }
+      if (leftKneeRef.current) {
+        leftKneeRef.current.rotation.x = Math.PI / 2.1;
+      }
+      if (rightKneeRef.current) {
+        rightKneeRef.current.rotation.x = Math.PI / 2.1;
       }
       if (isWorking) {
         // Typing / game developing pose
@@ -567,7 +818,7 @@ export function AdultCharacter({
           rightArmRef.current.rotation.z = -0.15;
         }
         if (headRef.current) {
-          headRef.current.rotation.x = 0.18 + Math.sin(t * 1.5) * 0.02; // Attentive focus on screen
+          headRef.current.rotation.x = 0.18 + Math.sin(t * 1.5) * 0.02;
           headRef.current.rotation.y = Math.sin(t * 0.8) * 0.04;
         }
       } else {
@@ -584,34 +835,131 @@ export function AdultCharacter({
         }
       }
       if (bodyRef.current) {
-        bodyRef.current.position.y = -0.22;
+        bodyRef.current.position.y = -0.38;
         bodyRef.current.rotation.x = isWorking ? 0.08 : 0;
       }
       return;
     }
 
-    if (isWalking) {
+    if (praying) {
+      // Respectful Namaste pose: hands joined in front of chest, head gently bowed towards Bappa
+      if (leftLegRef.current) {
+        leftLegRef.current.rotation.x = THREE.MathUtils.damp(leftLegRef.current.rotation.x, 0, 20, delta);
+        if (Math.abs(leftLegRef.current.rotation.x) < 0.001) leftLegRef.current.rotation.x = 0;
+      }
+      if (rightLegRef.current) {
+        rightLegRef.current.rotation.x = THREE.MathUtils.damp(rightLegRef.current.rotation.x, 0, 20, delta);
+        if (Math.abs(rightLegRef.current.rotation.x) < 0.001) rightLegRef.current.rotation.x = 0;
+      }
+      if (leftKneeRef.current) {
+        leftKneeRef.current.rotation.x = THREE.MathUtils.damp(leftKneeRef.current.rotation.x, 0, 20, delta);
+        if (Math.abs(leftKneeRef.current.rotation.x) < 0.001) leftKneeRef.current.rotation.x = 0;
+      }
+      if (rightKneeRef.current) {
+        rightKneeRef.current.rotation.x = THREE.MathUtils.damp(rightKneeRef.current.rotation.x, 0, 20, delta);
+        if (Math.abs(rightKneeRef.current.rotation.x) < 0.001) rightKneeRef.current.rotation.x = 0;
+      }
+
+      if (leftArmRef.current) {
+        leftArmRef.current.rotation.x = THREE.MathUtils.damp(leftArmRef.current.rotation.x, -0.92, 14, delta);
+        leftArmRef.current.rotation.y = THREE.MathUtils.damp(leftArmRef.current.rotation.y, 0.28, 14, delta);
+        leftArmRef.current.rotation.z = THREE.MathUtils.damp(leftArmRef.current.rotation.z, 0.38, 14, delta);
+      }
+      if (rightArmRef.current) {
+        rightArmRef.current.rotation.x = THREE.MathUtils.damp(rightArmRef.current.rotation.x, -0.92, 14, delta);
+        rightArmRef.current.rotation.y = THREE.MathUtils.damp(rightArmRef.current.rotation.y, -0.28, 14, delta);
+        rightArmRef.current.rotation.z = THREE.MathUtils.damp(rightArmRef.current.rotation.z, -0.38, 14, delta);
+      }
+      if (headRef.current) {
+        headRef.current.rotation.x = THREE.MathUtils.damp(headRef.current.rotation.x, 0.16, 10, delta);
+        headRef.current.rotation.y = THREE.MathUtils.damp(headRef.current.rotation.y, 0, 10, delta);
+      }
+      if (bodyRef.current) {
+        bodyRef.current.position.y = Math.sin(t * 1.5) * 0.004;
+        bodyRef.current.rotation.set(0, 0, 0);
+      }
+      return;
+    }
+
+    if (interacting) {
+      // Reaching forward to consecrate/place the murti on the singhasan
+      if (leftLegRef.current) {
+        leftLegRef.current.rotation.x = THREE.MathUtils.damp(leftLegRef.current.rotation.x, 0, 20, delta);
+        if (Math.abs(leftLegRef.current.rotation.x) < 0.001) leftLegRef.current.rotation.x = 0;
+      }
+      if (rightLegRef.current) {
+        rightLegRef.current.rotation.x = THREE.MathUtils.damp(rightLegRef.current.rotation.x, 0, 20, delta);
+        if (Math.abs(rightLegRef.current.rotation.x) < 0.001) rightLegRef.current.rotation.x = 0;
+      }
+      if (leftArmRef.current) {
+        leftArmRef.current.rotation.x = THREE.MathUtils.damp(leftArmRef.current.rotation.x, -0.85, 12, delta);
+        leftArmRef.current.rotation.y = 0.16;
+        leftArmRef.current.rotation.z = 0.12;
+      }
+      if (rightArmRef.current) {
+        rightArmRef.current.rotation.x = THREE.MathUtils.damp(rightArmRef.current.rotation.x, -0.85, 12, delta);
+        rightArmRef.current.rotation.y = -0.16;
+        rightArmRef.current.rotation.z = -0.12;
+      }
+      if (headRef.current) {
+        headRef.current.rotation.x = 0.08;
+      }
+      return;
+    }
+
+    if (isActuallyMoving) {
       // Dynamic adult stride
-      const stride = Math.sin(walkCycle) * (isRunning ? 0.68 : 0.44);
-      const armSwing = Math.sin(walkCycle) * (isRunning ? 0.62 : 0.4);
+      const stride = Math.sin(walkCycle) * (isRunningActual ? 0.68 : 0.44);
+      const armSwing = Math.sin(walkCycle) * (isRunningActual ? 0.62 : 0.4);
 
       if (leftLegRef.current) leftLegRef.current.rotation.x = stride;
       if (rightLegRef.current) rightLegRef.current.rotation.x = -stride;
-      if (leftArmRef.current) leftArmRef.current.rotation.x = -armSwing;
-      if (rightArmRef.current) rightArmRef.current.rotation.x = armSwing;
+      if (leftKneeRef.current) leftKneeRef.current.rotation.x = Math.max(0, -stride * 0.45);
+      if (rightKneeRef.current) rightKneeRef.current.rotation.x = Math.max(0, stride * 0.45);
+
+      if (carrying) {
+        // Holding palanquin while walking
+        if (leftArmRef.current) {
+          leftArmRef.current.rotation.x = -0.72 + Math.sin(walkCycle) * 0.08;
+          leftArmRef.current.rotation.y = 0.14;
+          leftArmRef.current.rotation.z = 0.12;
+        }
+        if (rightArmRef.current) {
+          rightArmRef.current.rotation.x = -0.72 - Math.sin(walkCycle) * 0.08;
+          rightArmRef.current.rotation.y = -0.14;
+          rightArmRef.current.rotation.z = -0.12;
+        }
+      } else {
+        if (leftArmRef.current) leftArmRef.current.rotation.x = -armSwing;
+        if (rightArmRef.current) rightArmRef.current.rotation.x = armSwing;
+      }
 
       if (bodyRef.current) {
         bodyRef.current.position.y = Math.abs(Math.sin(walkCycle * 2)) * 0.022;
         bodyRef.current.rotation.z = Math.sin(walkCycle) * 0.025;
-        bodyRef.current.rotation.x = isRunning ? 0.1 : 0.02;
+        bodyRef.current.rotation.x = isRunningActual ? 0.1 : 0.02;
       }
       if (headRef.current) {
         headRef.current.rotation.x = Math.sin(walkCycle * 2) * 0.02;
       }
     } else {
-      // Confident young adult idle
-      if (leftLegRef.current) leftLegRef.current.rotation.x *= 0.88;
-      if (rightLegRef.current) rightLegRef.current.rotation.x *= 0.88;
+      // Confident young adult idle: STRICT ZERO ON STATIONARY
+      if (leftLegRef.current) {
+        leftLegRef.current.rotation.x = THREE.MathUtils.damp(leftLegRef.current.rotation.x, 0, 20, delta);
+        if (Math.abs(leftLegRef.current.rotation.x) < 0.001) leftLegRef.current.rotation.x = 0;
+      }
+      if (rightLegRef.current) {
+        rightLegRef.current.rotation.x = THREE.MathUtils.damp(rightLegRef.current.rotation.x, 0, 20, delta);
+        if (Math.abs(rightLegRef.current.rotation.x) < 0.001) rightLegRef.current.rotation.x = 0;
+      }
+      if (leftKneeRef.current) {
+        leftKneeRef.current.rotation.x = THREE.MathUtils.damp(leftKneeRef.current.rotation.x, 0, 20, delta);
+        if (Math.abs(leftKneeRef.current.rotation.x) < 0.001) leftKneeRef.current.rotation.x = 0;
+      }
+      if (rightKneeRef.current) {
+        rightKneeRef.current.rotation.x = THREE.MathUtils.damp(rightKneeRef.current.rotation.x, 0, 20, delta);
+        if (Math.abs(rightKneeRef.current.rotation.x) < 0.001) rightKneeRef.current.rotation.x = 0;
+      }
 
       if (isTalking) {
         if (leftArmRef.current) {
@@ -757,32 +1105,36 @@ export function AdultCharacter({
         {/* ─── LEGS & SHOES ─── */}
         <group ref={leftLegRef} position={[-0.085, 0.82, 0]}>
           {/* Thigh in modern trousers */}
-          <mesh position={[0, -0.17, 0]} material={materials.pants} castShadow>
+          <mesh position={[0, -0.16, 0]} material={materials.pants} castShadow>
             <capsuleGeometry args={[0.058, 0.22, 8, 10]} />
           </mesh>
-          {/* Calf */}
-          <mesh position={[0, -0.44, 0]} material={materials.pants} castShadow>
-            <capsuleGeometry args={[0.05, 0.22, 8, 10]} />
-          </mesh>
-          {/* Leather shoe / loafer */}
-          <mesh position={[0, -0.62, 0.035]} material={materials.shoes} castShadow>
-            <boxGeometry args={[0.075, 0.05, 0.16]} />
-          </mesh>
+          <group ref={leftKneeRef} position={[0, -0.30, 0]}>
+            {/* Calf */}
+            <mesh position={[0, -0.15, 0]} material={materials.pants} castShadow>
+              <capsuleGeometry args={[0.05, 0.20, 8, 10]} />
+            </mesh>
+            {/* Leather shoe / loafer */}
+            <mesh position={[0, -0.30, 0.035]} material={materials.shoes} castShadow>
+              <boxGeometry args={[0.075, 0.05, 0.16]} />
+            </mesh>
+          </group>
         </group>
 
         <group ref={rightLegRef} position={[0.085, 0.82, 0]}>
           {/* Thigh */}
-          <mesh position={[0, -0.17, 0]} material={materials.pants} castShadow>
+          <mesh position={[0, -0.16, 0]} material={materials.pants} castShadow>
             <capsuleGeometry args={[0.058, 0.22, 8, 10]} />
           </mesh>
-          {/* Calf */}
-          <mesh position={[0, -0.44, 0]} material={materials.pants} castShadow>
-            <capsuleGeometry args={[0.05, 0.22, 8, 10]} />
-          </mesh>
-          {/* Leather shoe / loafer */}
-          <mesh position={[0, -0.62, 0.035]} material={materials.shoes} castShadow>
-            <boxGeometry args={[0.075, 0.05, 0.16]} />
-          </mesh>
+          <group ref={rightKneeRef} position={[0, -0.30, 0]}>
+            {/* Calf */}
+            <mesh position={[0, -0.15, 0]} material={materials.pants} castShadow>
+              <capsuleGeometry args={[0.05, 0.20, 8, 10]} />
+            </mesh>
+            {/* Leather shoe / loafer */}
+            <mesh position={[0, -0.30, 0.035]} material={materials.shoes} castShadow>
+              <boxGeometry args={[0.075, 0.05, 0.16]} />
+            </mesh>
+          </group>
         </group>
       </group>
     </group>

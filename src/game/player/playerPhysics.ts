@@ -93,6 +93,14 @@ export class PlayerPhysics {
     this.position.set(x, y, z);
   }
 
+  resetVelocity() {
+    this.velocity.set(0, 0, 0);
+  }
+
+  getVelocity(): THREE.Vector3 {
+    return this.velocity;
+  }
+
   /**
    * Check if testPos collides with any wall or furniture collider.
    * Uses cylinder-vs-AABB test (circle on XZ plane, ignoring Y for simplicity).

@@ -1,728 +1,466 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useGameState, gameStateStore } from '../../core/GameState';
 import { audioManager } from '../../audio/AudioManager';
 
 export function TimePassageSequence() {
-  const { presentScenePhase, gameBudget } = useGameState();
+  const { presentScenePhase, timePassageStage = 0 } = useGameState();
 
-  // Sub-step index for multi-step phases (like time passage years or dev milestones)
-  const [subStep, setSubStep] = useState(0);
-  // Reset sub-step when phase changes
+  // Internal beat index for multi-line cinematic pacing in FINANCIAL_PROBLEM and COMPETITION_DISCOVERY
+  const [beatIndex, setBeatIndex] = useState(0);
+
+  // Soft cinematic light sweep effect during time transition
+  const [isLightSweeping, setIsLightSweeping] = useState(false);
+
+  // Subtitle animation key to trigger clean fade-ins
+  const [animKey, setAnimKey] = useState(0);
+
+  // Continuous timer for the shortened 15-25s growing-up sequence
+  const [passageElapsed, setPassageElapsed] = useState(0);
+
+  // Reset beat index when narrative phase changes
   useEffect(() => {
-    setSubStep(0);
+    setBeatIndex(0);
+    setAnimKey((prev) => prev + 1);
   }, [presentScenePhase]);
 
-  // Sound effect triggers on key phases
+  // Audio triggers for key emotional beats
   useEffect(() => {
     if (presentScenePhase === 'TIME_PASSAGE') {
       audioManager.playTransitionSwell();
-    } else if (presentScenePhase === 'COMPETITION_WIN') {
-      audioManager.playCelebrationChime();
-    } else if (presentScenePhase === 'PRIZE_RECEIVED') {
-      audioManager.playTempleBell();
+      setPassageElapsed(0);
+    } else if (presentScenePhase === 'COMPETITION_DISCOVERY') {
+      audioManager.playClueDiscovered();
     }
   }, [presentScenePhase]);
 
-  // Keyboard navigation support
+  // Trigger cinematic light transition wash across the 3D room
+  const triggerLightSweep = useCallback((onMidpoint: () => void) => {
+    setIsLightSweeping(true);
+    audioManager.playFootstep();
+
+    setTimeout(() => {
+      onMidpoint();
+    }, 380);
+
+    setTimeout(() => {
+      setIsLightSweeping(false);
+    }, 850);
+  }, []);
+
+  // ─── CONTINUOUS 18-SECOND GROWING-UP TIME PASSAGE ENGINE ───
+  // Child Vinay -> School Years -> College Youth -> Adult Vinay (hold 2s) -> 3 short lines -> Financial Problem
+  const stageRef = useRef(timePassageStage);
+  stageRef.current = timePassageStage;
+
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyE') {
-        // Prevent default only if we are in an active sequence phase
-        const activePhases = [
-          'TIME_PASSAGE',
-          'ADULT_PROTAGONIST',
-          'ANNUAL_FESTIVAL_MONTAGE',
-          'CURRENT_YEAR',
-          'FINANCIAL_PROBLEM',
-          'COMPETITION_DISCOVERY',
-          'COMPETITION_READY',
-        ];
-        if (activePhases.includes(presentScenePhase)) {
-          e.preventDefault();
-          handleNext();
+    if (presentScenePhase !== 'TIME_PASSAGE') return;
+
+    const interval = setInterval(() => {
+      setPassageElapsed((prev) => {
+        const next = prev + 0.2;
+
+        // t = 4.0s: Transition from Child to School Years
+        if (prev < 4.0 && next >= 4.0) {
+          triggerLightSweep(() => {
+            gameStateStore.setTimePassageStage(1);
+          });
         }
+        // t = 8.0s: Transition from School Years to College Youth
+        else if (prev < 8.0 && next >= 8.0) {
+          triggerLightSweep(() => {
+            gameStateStore.setTimePassageStage(2);
+          });
+        }
+        // t = 12.0s: Transition to Adult Vinay
+        else if (prev < 12.0 && next >= 12.0) {
+          triggerLightSweep(() => {
+            gameStateStore.setTimePassageStage(3);
+            gameStateStore.setAdultProtagonist(true);
+          });
+        }
+        // t = 24.5s: Auto-advance to Financial Problem after narration
+        else if (prev < 24.5 && next >= 24.5) {
+          triggerLightSweep(() => {
+            gameStateStore.advancePresentPhase('FINANCIAL_PROBLEM');
+          });
+        }
+
+        return next;
+      });
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, [presentScenePhase, triggerLightSweep]);
+
+  // Current subtitle text calculation
+  let currentSubtitle: string | null = null;
+  let currentChapter = "VINAY'S JOURNEY";
+
+  if (presentScenePhase === 'TIME_PASSAGE') {
+    currentChapter = "VINAY'S JOURNEY";
+    // 0s to 12.0s: Visual memory flow (no text, room and Vinay transform)
+    // 12.0s to 14.0s: Camera settles on Adult Vinay (hold 2s with silence)
+    // 14.0s to 17.5s: Line 1
+    // 17.5s to 21.0s: Line 2
+    // 21.0s to 24.5s: Line 3
+    if (passageElapsed >= 14.0 && passageElapsed < 17.5) {
+      currentSubtitle = 'Years passed.';
+    } else if (passageElapsed >= 17.5 && passageElapsed < 21.0) {
+      currentSubtitle = 'But every Ganesh Chaturthi, he returned to the same tradition.';
+    } else if (passageElapsed >= 21.0) {
+      currentSubtitle = 'This year was different.';
+    }
+  } else if (presentScenePhase === 'FINANCIAL_PROBLEM') {
+    currentChapter = 'AN UNEXPECTED HURDLE';
+    const problemLines = [
+      'Vinay had promised to build the community pandal himself.',
+      'After college graduation fees, his savings were depleted... ₹15,000 was needed.',
+      '“How can we welcome Bappa without a proper pandal? I cannot give up.”',
+    ];
+    currentSubtitle = problemLines[beatIndex] || problemLines[0];
+  } else if (presentScenePhase === 'COMPETITION_DISCOVERY') {
+    currentChapter = 'THE TURNING POINT';
+    const compLines = [
+      'A sudden notification illuminated his desk: The NIAT National Game Challenge.',
+      'Theme: Indian Heritage & Ancient Legends... First Prize: Exactly ₹15,000!',
+      '“Vinay had one chance. Build something worth remembering.”',
+    ];
+    currentSubtitle = compLines[beatIndex] || compLines[0];
+  }
+
+  // Active check
+  const isSequenceActive =
+    presentScenePhase === 'TIME_PASSAGE' ||
+    presentScenePhase === 'ADULT_PROTAGONIST' ||
+    presentScenePhase === 'ANNUAL_FESTIVAL_MONTAGE' ||
+    presentScenePhase === 'CURRENT_YEAR' ||
+    presentScenePhase === 'FINANCIAL_PROBLEM' ||
+    presentScenePhase === 'COMPETITION_DISCOVERY';
+
+  // Progression handler on click / Space
+  const handleAdvance = useCallback(() => {
+    if (isLightSweeping) return;
+
+    audioManager.playUIClick();
+
+    if (presentScenePhase === 'TIME_PASSAGE') {
+      // Allow player to fast-forward through montage stages or lines
+      if (passageElapsed < 4.0) {
+        setPassageElapsed(4.0);
+        triggerLightSweep(() => gameStateStore.setTimePassageStage(1));
+      } else if (passageElapsed < 8.0) {
+        setPassageElapsed(8.0);
+        triggerLightSweep(() => gameStateStore.setTimePassageStage(2));
+      } else if (passageElapsed < 12.0) {
+        setPassageElapsed(12.0);
+        triggerLightSweep(() => {
+          gameStateStore.setTimePassageStage(3);
+          gameStateStore.setAdultProtagonist(true);
+        });
+      } else if (passageElapsed < 14.0) {
+        setPassageElapsed(14.0);
+      } else if (passageElapsed < 17.5) {
+        setPassageElapsed(17.5);
+      } else if (passageElapsed < 21.0) {
+        setPassageElapsed(21.0);
+      } else {
+        triggerLightSweep(() => {
+          gameStateStore.advancePresentPhase('FINANCIAL_PROBLEM');
+        });
+      }
+    } else if (
+      presentScenePhase === 'ADULT_PROTAGONIST' ||
+      presentScenePhase === 'ANNUAL_FESTIVAL_MONTAGE' ||
+      presentScenePhase === 'CURRENT_YEAR'
+    ) {
+      triggerLightSweep(() => {
+        gameStateStore.advancePresentPhase('FINANCIAL_PROBLEM');
+      });
+    } else if (presentScenePhase === 'FINANCIAL_PROBLEM') {
+      if (beatIndex < 2) {
+        setBeatIndex((prev) => prev + 1);
+        setAnimKey((prev) => prev + 1);
+      } else {
+        triggerLightSweep(() => {
+          gameStateStore.advancePresentPhase('COMPETITION_DISCOVERY');
+        });
+      }
+    } else if (presentScenePhase === 'COMPETITION_DISCOVERY') {
+      if (beatIndex < 2) {
+        setBeatIndex((prev) => prev + 1);
+        setAnimKey((prev) => prev + 1);
+      } else {
+        // Launch directly into interactive game creation sequence
+        triggerLightSweep(() => {
+          gameStateStore.advancePresentPhase('GAME_DEVELOPMENT');
+        });
+      }
+    }
+  }, [isLightSweeping, presentScenePhase, passageElapsed, beatIndex, triggerLightSweep]);
+
+  // Skip directly to game creation
+  const handleSkip = useCallback(() => {
+    audioManager.playUIClick();
+    gameStateStore.advancePresentPhase('GAME_DEVELOPMENT');
+  }, []);
+
+  // Keyboard navigation: Space, Enter, or KeyE
+  useEffect(() => {
+    if (!isSequenceActive) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.code === 'Space' ||
+        e.code === 'Enter' ||
+        e.code === 'KeyE' ||
+        e.key === 'e' ||
+        e.key === 'E'
+      ) {
+        e.preventDefault();
+        handleAdvance();
+      } else if (e.code === 'Escape') {
+        e.preventDefault();
+        handleSkip();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [presentScenePhase, subStep]);
-
-  // Only render during the present-day post-mythology storyline
-  const isSequenceActive = [
-    'TIME_PASSAGE',
-    'ADULT_PROTAGONIST',
-    'ANNUAL_FESTIVAL_MONTAGE',
-    'CURRENT_YEAR',
-    'FINANCIAL_PROBLEM',
-    'COMPETITION_DISCOVERY',
-    'COMPETITION_READY',
-  ].includes(presentScenePhase);
+  }, [isSequenceActive, handleAdvance, handleSkip]);
 
   if (!isSequenceActive) return null;
 
-  const handleNext = () => {
-    audioManager.playUIClick();
-
-    if (presentScenePhase === 'TIME_PASSAGE') {
-      if (subStep < 3) {
-        setSubStep(subStep + 1);
-        audioManager.playFootstep();
-      } else {
-        gameStateStore.advancePresentPhase('ADULT_PROTAGONIST');
-      }
-    } else if (presentScenePhase === 'ADULT_PROTAGONIST') {
-      gameStateStore.advancePresentPhase('ANNUAL_FESTIVAL_MONTAGE');
-    } else if (presentScenePhase === 'ANNUAL_FESTIVAL_MONTAGE') {
-      if (subStep < 2) {
-        setSubStep(subStep + 1);
-      } else {
-        gameStateStore.advancePresentPhase('CURRENT_YEAR');
-      }
-    } else if (presentScenePhase === 'CURRENT_YEAR') {
-      gameStateStore.advancePresentPhase('FINANCIAL_PROBLEM');
-    } else if (presentScenePhase === 'FINANCIAL_PROBLEM') {
-      gameStateStore.advancePresentPhase('COMPETITION_DISCOVERY');
-    } else if (presentScenePhase === 'COMPETITION_DISCOVERY') {
-      // Transition directly to playable game development workspace
-      gameStateStore.advancePresentPhase('GAME_DEVELOPMENT');
-    } else if (presentScenePhase === 'COMPETITION_READY') {
-      // Transition to dedicated NIAT Competition auditorium scene
-      gameStateStore.advancePresentPhase('COMPETITION');
-    }
-  };
-
-  // ─── RENDERERS FOR EACH NARRATIVE PHASE ──────────────────────────
+  const isFinalAction =
+    presentScenePhase === 'COMPETITION_DISCOVERY' && beatIndex >= 2;
 
   return (
     <div
+      onClick={handleAdvance}
       style={{
         position: 'absolute',
         inset: 0,
+        zIndex: 90,
+        overflow: 'hidden',
         pointerEvents: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        zIndex: 100,
-        fontFamily: "'Outfit', 'Segoe UI', sans-serif",
+        userSelect: 'none',
+        cursor: 'pointer',
       }}
     >
-      {/* Cinematic Top Letterbox Bar */}
+      {/* ─── CINEMATIC WIDESCREEN LETTERBOX BARS (2.39:1 FILM RATIO) ─── */}
       <div
         style={{
-          width: '100%',
-          height: '64px',
-          background: 'linear-gradient(to bottom, rgba(7, 5, 4, 0.95), rgba(7, 5, 4, 0))',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 32px',
-          boxSizing: 'border-box',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '6vh',
+          backgroundColor: '#050304',
+          zIndex: 96,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.85)',
+          pointerEvents: 'none',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '6vh',
+          backgroundColor: '#050304',
+          zIndex: 96,
+          boxShadow: '0 -4px 20px rgba(0,0,0,0.85)',
+          pointerEvents: 'none',
+        }}
+      />
+
+      {/* ─── UNOBTRUSIVE TOP CHAPTER INDICATOR ─── */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 'clamp(14px, 2.5vh, 22px)',
+          left: 'clamp(20px, 3.5vw, 44px)',
+          zIndex: 97,
+          fontFamily: "'Cinzel', 'Marcellus', serif",
+          fontSize: '11px',
+          fontWeight: 700,
+          letterSpacing: '0.35em',
+          color: 'rgba(254, 240, 138, 0.78)',
+          textTransform: 'uppercase',
+          textShadow: '0 2px 8px rgba(0, 0, 0, 0.95)',
+          pointerEvents: 'none',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ color: '#ffb703', fontSize: '18px' }}>🕉</span>
-          <span
-            style={{
-              color: '#f0e6d2',
-              fontSize: '13px',
-              letterSpacing: '2.5px',
-              textTransform: 'uppercase',
-              fontWeight: 600,
-            }}
-          >
-            Vinay's Journey · Continuing the Tradition
-          </span>
-        </div>
-
-        {/* Budget HUD Indicator when unlocked */}
-        {gameBudget > 0 && (
-          <div
-            style={{
-              background: 'rgba(212, 175, 55, 0.15)',
-              border: '1px solid rgba(212, 175, 55, 0.5)',
-              borderRadius: '20px',
-              padding: '4px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-          >
-            <span style={{ color: '#d4af37', fontSize: '13px', fontWeight: 700 }}>
-              Festival Budget:
-            </span>
-            <span style={{ color: '#ffffff', fontSize: '14px', fontWeight: 800 }}>
-              ₹{gameBudget.toLocaleString('en-IN')}
-            </span>
-          </div>
-        )}
+        {currentChapter}
       </div>
 
-      {/* Center Cinematic Card / Storytelling Stage */}
+      {/* ─── DISCREET SKIP CONTROL ─── */}
       <div
+        onClick={(e) => {
+          e.stopPropagation();
+          handleSkip();
+        }}
         style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: '20px',
+          position: 'absolute',
+          top: 'clamp(14px, 2.5vh, 22px)',
+          right: 'clamp(20px, 3.5vw, 44px)',
+          zIndex: 97,
+          fontFamily: "'Cinzel', 'Marcellus', serif",
+          fontSize: '12px',
+          letterSpacing: '0.22em',
+          color: 'rgba(250, 245, 235, 0.45)',
+          textTransform: 'uppercase',
+          cursor: 'pointer',
+          padding: '4px 8px',
+          transition: 'color 0.2s ease, transform 0.2s ease',
+          textShadow: '0 2px 8px rgba(0, 0, 0, 0.95)',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = '#fef08a';
+          e.currentTarget.style.transform = 'translateX(2px)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = 'rgba(250, 245, 235, 0.45)';
+          e.currentTarget.style.transform = 'translateX(0)';
         }}
       >
-        {/* PHASE 1: TIME PASSAGE (2012 → 2024) */}
-        {presentScenePhase === 'TIME_PASSAGE' && (
-          <div
-            style={{
-              background: 'rgba(15, 12, 9, 0.88)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(212, 169, 109, 0.35)',
-              borderRadius: '16px',
-              padding: '36px 48px',
-              maxWidth: '680px',
-              width: '90%',
-              textAlign: 'center',
-              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(255, 183, 3, 0.15)',
-              animation: 'fadeIn 0.6s ease-out',
-            }}
-          >
-            <div
-              style={{
-                color: '#ffb703',
-                fontSize: '12px',
-                fontWeight: 700,
-                letterSpacing: '3px',
-                textTransform: 'uppercase',
-                marginBottom: '8px',
-              }}
-            >
-              Passage of Time
-            </div>
-            <h2
-              style={{
-                color: '#fff',
-                fontSize: '28px',
-                margin: '0 0 16px 0',
-                fontFamily: "'Georgia', serif",
-                letterSpacing: '1px',
-              }}
-            >
-              YEARS HAVE PASSED
-            </h2>
-
-            {/* Timeline Stepper */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                margin: '28px 0',
-                position: 'relative',
-              }}
-            >
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '18px',
-                  left: '10%',
-                  right: '10%',
-                  height: '2px',
-                  background: 'rgba(255, 255, 255, 0.15)',
-                  zIndex: 1,
-                }}
-              />
-              {[
-                { year: '2012', desc: 'Childhood wonder with Dada' },
-                { year: '2016', desc: 'School days & first code' },
-                { year: '2020', desc: 'College years & game design' },
-                { year: '2024', desc: 'Present Day · Young Adult' },
-              ].map((item, idx) => (
-                <div
-                  key={item.year}
-                  style={{
-                    position: 'relative',
-                    zIndex: 2,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    opacity: idx <= subStep ? 1 : 0.35,
-                    transition: 'all 0.5s ease',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '50%',
-                      background: idx <= subStep ? '#ffb703' : '#221c17',
-                      color: idx <= subStep ? '#1a1005' : '#888',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 800,
-                      fontSize: '12px',
-                      border: '2px solid rgba(255, 183, 3, 0.4)',
-                      marginBottom: '8px',
-                      boxShadow: idx <= subStep ? '0 0 16px rgba(255, 183, 3, 0.6)' : 'none',
-                    }}
-                  >
-                    {idx + 1}
-                  </div>
-                  <div style={{ color: '#ffb703', fontWeight: 700, fontSize: '15px' }}>
-                    {item.year}
-                  </div>
-                  <div
-                    style={{
-                      color: '#c4b5a2',
-                      fontSize: '11px',
-                      maxWidth: '120px',
-                      marginTop: '4px',
-                    }}
-                  >
-                    {item.desc}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <p
-              style={{
-                color: '#e0d6c8',
-                fontSize: '15px',
-                lineHeight: '1.6',
-                fontStyle: 'italic',
-                margin: '20px 0 0 0',
-              }}
-            >
-              {subStep === 0 &&
-                '“The warmth of grandfather’s living room embraced you as a boy, fascinated by the celestial legend of Sri Ganesha.”'}
-              {subStep === 1 &&
-                '“Seasons turned outside the window. As you grew, your curiosity led you to computers, sketches, and the wonder of video games.”'}
-              {subStep === 2 &&
-                '“College days arrived. You learned to program game worlds, always remembering Dada’s lessons about overcoming life’s hurdles.”'}
-              {subStep === 3 &&
-                '“Today, Vinay stands tall as a passionate young adult game developer. But the sacred promise made to Dada remains as bright as ever.”'}
-            </p>
-          </div>
-        )}
-
-        {/* PHASE 2: ADULT PROTAGONIST INTRO */}
-        {presentScenePhase === 'ADULT_PROTAGONIST' && (
-          <div
-            style={{
-              background: 'rgba(15, 12, 9, 0.88)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(212, 169, 109, 0.35)',
-              borderRadius: '16px',
-              padding: '36px 48px',
-              maxWidth: '620px',
-              width: '90%',
-              textAlign: 'center',
-              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7)',
-            }}
-          >
-            <div
-              style={{
-                color: '#ffb703',
-                fontSize: '12px',
-                fontWeight: 700,
-                letterSpacing: '2px',
-                textTransform: 'uppercase',
-                marginBottom: '8px',
-              }}
-            >
-              A Grown Protagonist
-            </div>
-            <h2 style={{ color: '#fff', fontSize: '24px', margin: '0 0 16px 0' }}>
-              Twelve Years of Devotion & Dreams
-            </h2>
-            <p style={{ color: '#e0d6c8', fontSize: '15px', lineHeight: '1.7' }}>
-              “I am no longer that little boy on the sofa asking questions. I have grown, studied,
-              and learned to create interactive worlds of my own. Yet every autumn, my heart yearns
-              for that same joy — the arrival of Sri Ganesha.”
-            </p>
-          </div>
-        )}
-
-        {/* PHASE 3: ANNUAL FESTIVAL MONTAGE */}
-        {presentScenePhase === 'ANNUAL_FESTIVAL_MONTAGE' && (
-          <div
-            style={{
-              background: 'rgba(15, 12, 9, 0.88)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(212, 169, 109, 0.35)',
-              borderRadius: '16px',
-              padding: '36px 48px',
-              maxWidth: '640px',
-              width: '90%',
-              textAlign: 'center',
-              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7)',
-            }}
-          >
-            <div
-              style={{
-                color: '#ffb703',
-                fontSize: '12px',
-                fontWeight: 700,
-                letterSpacing: '2px',
-                textTransform: 'uppercase',
-                marginBottom: '6px',
-              }}
-            >
-              Annual Tradition Montage · Year {subStep + 1} of 3
-            </div>
-            <h2 style={{ color: '#fff', fontSize: '24px', margin: '0 0 14px 0' }}>
-              {subStep === 0 && 'The Sacred Family Ritual'}
-              {subStep === 1 && 'Rangoli, Modaks & Chants'}
-              {subStep === 2 && 'Carrying the Torch Forward'}
-            </h2>
-            <div
-              style={{
-                background: 'rgba(0, 0, 0, 0.4)',
-                border: '1px solid rgba(255, 183, 3, 0.2)',
-                borderRadius: '10px',
-                padding: '16px',
-                margin: '16px 0',
-                color: '#f4ede2',
-                fontSize: '15px',
-                lineHeight: '1.6',
-              }}
-            >
-              {subStep === 0 &&
-                'Every single autumn, Vinay helped bring clay Bappa home. Together with Dada, he lit the fragrant brass diyas and offered sweet steamed modaks.'}
-              {subStep === 1 &&
-                'As years went by, Vinay began organizing the neighborhood rangoli competitions, drawing vibrant lotus patterns in vibrant vermilion and saffron.'}
-              {subStep === 2 &&
-                'Now, organizing the neighborhood community pandal has become Vinay’s personal devotion — a promise kept to the grandfather who raised him.'}
-            </div>
-          </div>
-        )}
-
-        {/* PHASE 4: CURRENT YEAR 2024 */}
-        {presentScenePhase === 'CURRENT_YEAR' && (
-          <div
-            style={{
-              background: 'rgba(15, 12, 9, 0.88)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(212, 169, 109, 0.35)',
-              borderRadius: '16px',
-              padding: '36px 48px',
-              maxWidth: '620px',
-              width: '90%',
-              textAlign: 'center',
-              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7)',
-            }}
-          >
-            <div
-              style={{
-                color: '#ffb703',
-                fontSize: '12px',
-                fontWeight: 700,
-                letterSpacing: '2px',
-                textTransform: 'uppercase',
-                marginBottom: '8px',
-              }}
-            >
-              Present Day · Bhadrapada Month
-            </div>
-            <h2 style={{ color: '#fff', fontSize: '24px', margin: '0 0 16px 0' }}>
-              Ganesh Chaturthi 2024 Arrives
-            </h2>
-            <p style={{ color: '#e0d6c8', fontSize: '15px', lineHeight: '1.7' }}>
-              The calendar on the wall marks the festive date. In just two weeks, the neighborhood
-              will gather to welcome Bappa. Vinay sits down at his desk to draft the celebration
-              budget.
-            </p>
-          </div>
-        )}
-
-        {/* PHASE 5: FINANCIAL PROBLEM */}
-        {presentScenePhase === 'FINANCIAL_PROBLEM' && (
-          <div
-            style={{
-              background: 'rgba(15, 12, 9, 0.9)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(230, 57, 70, 0.45)',
-              borderRadius: '16px',
-              padding: '36px 48px',
-              maxWidth: '640px',
-              width: '90%',
-              textAlign: 'center',
-              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7), 0 0 25px rgba(230, 57, 70, 0.15)',
-            }}
-          >
-            <div
-              style={{
-                color: '#e63946',
-                fontSize: '12px',
-                fontWeight: 700,
-                letterSpacing: '2px',
-                textTransform: 'uppercase',
-                marginBottom: '8px',
-              }}
-            >
-              An Unexpected Hurdle
-            </div>
-            <h2 style={{ color: '#fff', fontSize: '24px', margin: '0 0 16px 0' }}>
-              The Pandal Funds Dilemma
-            </h2>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '16px',
-                margin: '20px 0',
-              }}
-            >
-              <div
-                style={{
-                  background: 'rgba(230, 57, 70, 0.12)',
-                  border: '1px solid rgba(230, 57, 70, 0.35)',
-                  borderRadius: '10px',
-                  padding: '14px',
-                }}
-              >
-                <div style={{ color: '#aaa', fontSize: '12px' }}>Current Savings</div>
-                <div style={{ color: '#e63946', fontSize: '22px', fontWeight: 800 }}>₹450</div>
-                <div style={{ color: '#888', fontSize: '11px', marginTop: '4px' }}>
-                  (After college graduation fees)
-                </div>
-              </div>
-
-              <div
-                style={{
-                  background: 'rgba(255, 183, 3, 0.12)',
-                  border: '1px solid rgba(255, 183, 3, 0.35)',
-                  borderRadius: '10px',
-                  padding: '14px',
-                }}
-              >
-                <div style={{ color: '#aaa', fontSize: '12px' }}>Pandal Target Budget</div>
-                <div style={{ color: '#ffb703', fontSize: '22px', fontWeight: 800 }}>₹15,000</div>
-                <div style={{ color: '#888', fontSize: '11px', marginTop: '4px' }}>
-                  (Idol, bamboo frame, flowers, lights)
-                </div>
-              </div>
-            </div>
-
-            <p style={{ color: '#e0d6c8', fontSize: '14px', lineHeight: '1.6' }}>
-              “My savings are nearly empty after paying my final semester expenses... How can I let
-              the community down? How can we welcome Bappa without a proper pandal? I cannot give
-              up. There must be a way to earn this.”
-            </p>
-          </div>
-        )}
-
-        {/* PHASE 6: COMPETITION DISCOVERY */}
-        {presentScenePhase === 'COMPETITION_DISCOVERY' && (
-          <div
-            style={{
-              background: 'rgba(15, 12, 9, 0.92)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255, 183, 3, 0.5)',
-              borderRadius: '16px',
-              padding: '36px 48px',
-              maxWidth: '650px',
-              width: '90%',
-              textAlign: 'center',
-              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7), 0 0 35px rgba(255, 183, 3, 0.2)',
-            }}
-          >
-            <div
-              style={{
-                color: '#ffb703',
-                fontSize: '12px',
-                fontWeight: 700,
-                letterSpacing: '2px',
-                textTransform: 'uppercase',
-                marginBottom: '8px',
-              }}
-            >
-              The Turning Point
-            </div>
-            <h2 style={{ color: '#fff', fontSize: '24px', margin: '0 0 16px 0' }}>
-              “Wait... The NIAT Competition!”
-            </h2>
-
-            {/* In-game Competition Announcement Card */}
-            <div
-              style={{
-                background: 'linear-gradient(135deg, rgba(29, 53, 87, 0.7), rgba(15, 23, 42, 0.8))',
-                border: '1px solid #457b9d',
-                borderRadius: '12px',
-                padding: '20px',
-                margin: '18px 0',
-                textAlign: 'left',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '10px',
-                }}
-              >
-                <span style={{ color: '#ffb703', fontWeight: 800, fontSize: '15px' }}>
-                  🎮 NIAT National Game Challenge
-                </span>
-                <span
-                  style={{
-                    background: '#e63946',
-                    color: '#fff',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                  }}
-                >
-                  Deadline: Tonight
-                </span>
-              </div>
-              <div style={{ color: '#a8dadc', fontSize: '13px', marginBottom: '6px' }}>
-                Theme: <strong>Indian Heritage & Ancient Legends</strong>
-              </div>
-              <div
-                style={{
-                  color: '#f1faee',
-                  fontSize: '16px',
-                  fontWeight: 700,
-                  marginTop: '8px',
-                  borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-                  paddingTop: '8px',
-                }}
-              >
-                First Place Cash Prize:{' '}
-                <span style={{ color: '#2a9d8f', fontSize: '18px' }}>₹15,000</span>
-              </div>
-            </div>
-
-            <p style={{ color: '#f0e6d2', fontSize: '14px', lineHeight: '1.6', margin: '0' }}>
-              “Exactly ₹15,000! Just what we need for the pandal! Dada taught me how Ganesha faced
-              every trial with courage and wisdom. I have the skills — I will build a game honoring
-              His legend!”
-            </p>
-          </div>
-        )}
-
-        {/* PHASE: COMPETITION READY (FINAL BUILD REVIEW & DEEP BREATH) */}
-        {presentScenePhase === 'COMPETITION_READY' && (
-          <div
-            style={{
-              background: 'rgba(15, 12, 9, 0.94)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(0, 180, 216, 0.45)',
-              borderRadius: '16px',
-              padding: '36px 48px',
-              maxWidth: '640px',
-              width: '90%',
-              textAlign: 'center',
-              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8), 0 0 35px rgba(0, 180, 216, 0.2)',
-              animation: 'fadeIn 0.5s ease-out',
-            }}
-          >
-            <div
-              style={{
-                color: '#00b4d8',
-                fontSize: '11px',
-                fontWeight: 700,
-                letterSpacing: '2px',
-                textTransform: 'uppercase',
-                marginBottom: '8px',
-              }}
-            >
-              Submission Confirmed · Reviewing Build
-            </div>
-            <h2 style={{ color: '#fff', fontSize: '24px', margin: '0 0 16px 0' }}>
-              “The Legend of Vinayaka” Is Complete
-            </h2>
-
-            <div
-              style={{
-                background: 'rgba(0, 0, 0, 0.45)',
-                border: '1px solid rgba(0, 180, 216, 0.3)',
-                borderRadius: '12px',
-                padding: '16px',
-                margin: '16px 0 20px 0',
-                textAlign: 'left',
-                fontFamily: "'Courier New', monospace",
-                fontSize: '12px',
-                color: '#90e0ef',
-                lineHeight: '1.6',
-              }}
-            >
-              <div>✓ Package: TheLegendOfVinayaka_v1.0.pkg (42.8 MB)</div>
-              <div>✓ Target: NIAT National Championship Jury</div>
-              <div>✓ Status: Successfully Registered & Verified</div>
-            </div>
-
-            <p style={{ color: '#e0d6c8', fontSize: '15px', lineHeight: '1.7', margin: '0 0 24px 0' }}>
-              At 11:58 PM, you sit back from your keyboard and take a deep, calm breath.
-              Every ounce of devotion, artistic care, and technical effort you possessed has been poured into this project.
-              Now, the auditorium doors open for the Grand Finale...
-            </p>
-          </div>
-        )}
+        Skip →
       </div>
 
-      {/* Cinematic Bottom Controls Bar */}
-      <div
-        style={{
-          width: '100%',
-          height: '80px',
-          background: 'linear-gradient(to top, rgba(7, 5, 4, 0.95), rgba(7, 5, 4, 0))',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '0 32px',
-          boxSizing: 'border-box',
-        }}
-      >
-        <button
-          onClick={handleNext}
+      {/* ─── FULL-WIDTH LOWER ATMOSPHERIC GRADIENT (NO BOX / DIRECT OVER 3D WORLD) ─── */}
+      {currentSubtitle && (
+        <div
           style={{
-            background: 'linear-gradient(135deg, #ffb703, #fb8500)',
-            color: '#1a1005',
-            border: 'none',
-            borderRadius: '28px',
-            padding: '12px 36px',
-            fontSize: '15px',
-            fontWeight: 800,
-            cursor: 'pointer',
-            boxShadow: '0 4px 20px rgba(255, 183, 3, 0.4)',
-            transition: 'all 0.2s ease',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: '32vh',
+            background:
+              'linear-gradient(to top, rgba(7, 4, 6, 0.92) 0%, rgba(18, 10, 16, 0.52) 48%, rgba(7, 4, 6, 0.12) 80%, transparent 100%)',
+            pointerEvents: 'none',
+            zIndex: 93,
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.05)';
-            e.currentTarget.style.boxShadow = '0 6px 25px rgba(255, 183, 3, 0.6)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.boxShadow = '0 4px 20px rgba(255, 183, 3, 0.4)';
+        />
+      )}
+
+      {/* ─── FLOATING CINEMATIC SUBTITLE NARRATION ─── */}
+      {currentSubtitle && (
+        <div
+          key={`${animKey}-${currentSubtitle}`}
+          style={{
+            position: 'absolute',
+            bottom: 'clamp(44px, 8.5vh, 80px)',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '90%',
+            maxWidth: '860px',
+            textAlign: 'center',
+            zIndex: 95,
+            pointerEvents: 'none',
+            animation: 'fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
           }}
         >
-          <span>
-            {presentScenePhase === 'TIME_PASSAGE'
-              ? subStep < 3
-                ? 'Advance Years →'
-                : 'Meet Adult Vinay →'
-              : presentScenePhase === 'ADULT_PROTAGONIST'
-              ? 'View Festival Memories →'
-              : presentScenePhase === 'ANNUAL_FESTIVAL_MONTAGE'
-              ? subStep < 2
-                ? 'Next Year →'
-                : 'To Present Day (2024) →'
-              : presentScenePhase === 'CURRENT_YEAR'
-              ? 'Check Festival Budget →'
-              : presentScenePhase === 'FINANCIAL_PROBLEM'
-              ? 'Seek a Solution →'
-              : presentScenePhase === 'COMPETITION_DISCOVERY'
-              ? 'Open Dev Workspace & Build Game →'
-              : 'Enter Championship Auditorium →'}
-          </span>
-          <span style={{ fontSize: '11px', opacity: 0.8, fontWeight: 600 }}>[Space / Enter]</span>
-        </button>
+          <p
+            style={{
+              margin: 0,
+              padding: 0,
+              fontFamily: "'Cinzel', 'Marcellus', 'Georgia', serif",
+              fontSize: 'clamp(1.22rem, 1.85vw, 1.58rem)',
+              lineHeight: 1.65,
+              letterSpacing: '0.025em',
+              color: '#fcf8f0',
+              fontWeight: 500,
+              textShadow:
+                '0 2px 14px rgba(0, 0, 0, 0.98), 0 0 28px rgba(0, 0, 0, 0.9), 0 1px 4px rgba(254, 240, 138, 0.25)',
+            }}
+          >
+            {currentSubtitle}
+          </p>
+        </div>
+      )}
+
+      {/* ─── SUBTLE DISCREET CONTINUE PROMPT ─── */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 'clamp(14px, 2.8vh, 26px)',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 97,
+          pointerEvents: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          animation: 'subtlePromptPulse 3.2s ease-in-out infinite alternate',
+        }}
+      >
+        <span
+          style={{
+            padding: '2px 7px',
+            backgroundColor: 'rgba(255, 255, 255, 0.14)',
+            border: '1px solid rgba(255, 255, 255, 0.28)',
+            borderRadius: '3px',
+            color: '#ffffff',
+            fontFamily: "'Outfit', sans-serif",
+            fontSize: '10px',
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            textShadow: '0 1px 4px rgba(0, 0, 0, 0.8)',
+          }}
+        >
+          SPACE / CLICK
+        </span>
+        <span
+          style={{
+            fontFamily: "'Cinzel', 'Marcellus', serif",
+            fontSize: '11px',
+            fontWeight: 700,
+            letterSpacing: '0.24em',
+            color: isFinalAction ? '#ffd700' : 'rgba(254, 240, 138, 0.82)',
+            textTransform: 'uppercase',
+            textShadow: '0 1px 6px rgba(0, 0, 0, 0.95)',
+          }}
+        >
+          {isFinalAction ? 'BEGIN CREATING GAME →' : 'CONTINUE'}
+        </span>
       </div>
+
+      {/* ─── SOFT CINEMATIC LIGHT SWEEP OVERLAY (TIME-OF-DAY TRANSITION WASH) ─── */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background:
+            'radial-gradient(ellipse at 50% 50%, rgba(254, 240, 138, 0.65) 0%, rgba(251, 191, 36, 0.35) 45%, rgba(12, 7, 10, 0.85) 100%)',
+          mixBlendMode: 'screen',
+          opacity: isLightSweeping ? 0.92 : 0,
+          transition: 'opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+          pointerEvents: 'none',
+          zIndex: 98,
+        }}
+      />
+
+      <style>{`
+        @keyframes fadeInUp {
+          0% {
+            opacity: 0;
+            transform: translate(-50%, 10px);
+          }
+          100% {
+            opacity: 1;
+            transform: translate(-50%, 0);
+          }
+        }
+        @keyframes subtlePromptPulse {
+          0% {
+            opacity: 0.55;
+          }
+          100% {
+            opacity: 0.92;
+          }
+        }
+      `}</style>
     </div>
   );
 }

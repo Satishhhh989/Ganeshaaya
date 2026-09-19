@@ -9,7 +9,7 @@ import { DadaCharacter } from '../../characters/ProceduralCharacters';
 
 export function OldManNPC() {
   const groupRef = useRef<THREE.Group>(null);
-  const { gameState, presentScenePhase, playerPos } = useGameState();
+  const { gameState, presentScenePhase, playerPos, activeDialogue, dialogueIndex } = useGameState();
 
   // Staging Positions
   const standingPos = useRef(new THREE.Vector3(...ASSET_CONFIG.staging.oldManStanding));
@@ -41,7 +41,12 @@ export function OldManNPC() {
       // Standing and facing the player
       speedRef.current = 0;
       isSittingRef.current = false;
-      isTalkingRef.current = presentScenePhase === 'INITIAL_DIALOGUE';
+      const currentSpeaker = activeDialogue?.lines[dialogueIndex]?.speaker?.toLowerCase();
+      const isDadaSpeaking =
+        (presentScenePhase === 'INITIAL_DIALOGUE' || gameState === 'DIALOGUE') &&
+        currentSpeaker !== 'child' &&
+        currentSpeaker !== 'vinay';
+      isTalkingRef.current = isDadaSpeaking;
 
       let targetYaw = currentYaw.current;
       if (playerPos) {
@@ -55,52 +60,62 @@ export function OldManNPC() {
       groupRef.current.position.copy(currentPos.current);
 
     } else if (presentScenePhase === 'OLD_MAN_WALKING_SOFA') {
-      // Walking to sofa
-      speedRef.current = 0.9;
+      // Walking smoothly to predefined sofa marker at floor level
+      speedRef.current = 0.85;
       isSittingRef.current = false;
       isTalkingRef.current = false;
 
       const target = sittingMarker.current;
-      const toSofa = new THREE.Vector3().subVectors(target, currentPos.current);
-      toSofa.y = 0;
+      const toSofa = new THREE.Vector3(target.x - currentPos.current.x, 0, target.z - currentPos.current.z);
       const dist = toSofa.length();
 
       if (dist > 0.08) {
         const walkDir = toSofa.clone().normalize();
-        currentPos.current.addScaledVector(walkDir, 0.9 * dt);
+        currentPos.current.addScaledVector(walkDir, 0.85 * dt);
+        currentPos.current.y = 0.0; // Keep feet firmly on carpet while walking
         const targetYaw = Math.atan2(walkDir.x, walkDir.z);
-        currentYaw.current = lerpAngle(currentYaw.current, targetYaw, Math.min(1, dt * 8.0));
+        currentYaw.current = lerpAngle(currentYaw.current, targetYaw, Math.min(1, dt * 7.0));
       } else {
-        currentPos.current.copy(target);
+        currentPos.current.x = target.x;
+        currentPos.current.z = target.z;
+        sittingTimer.current = 0;
         gameStateStore.setPresentScenePhase('OLD_MAN_SITTING');
       }
 
-      groupRef.current.position.copy(currentPos.current);
+      groupRef.current.position.set(currentPos.current.x, currentPos.current.y, currentPos.current.z);
       groupRef.current.rotation.y = currentYaw.current;
 
     } else if (presentScenePhase === 'OLD_MAN_SITTING') {
-      // Transition to sitting
+      // Smoothly turn to face room and settle gently onto cushion
       speedRef.current = 0;
       isSittingRef.current = true;
       isTalkingRef.current = false;
 
-      currentYaw.current = lerpAngle(currentYaw.current, 0, Math.min(1, dt * 5.0));
-      groupRef.current.position.copy(sittingMarker.current);
+      sittingTimer.current += dt;
+      const progress = Math.min(1, sittingTimer.current / 0.9);
+      const ease = progress * progress * (3 - 2 * progress);
+      const seatY = THREE.MathUtils.lerp(0.0, sittingMarker.current.y, ease);
+
+      currentYaw.current = lerpAngle(currentYaw.current, 0, Math.min(1, dt * 6.0));
+      groupRef.current.position.set(sittingMarker.current.x, seatY, sittingMarker.current.z);
       groupRef.current.rotation.y = currentYaw.current;
 
-      sittingTimer.current += dt;
-      if (sittingTimer.current > 1.5) {
+      if (sittingTimer.current > 1.6) {
         gameStateStore.setPresentScenePhase('CHILD_WALKING_SOFA');
       }
 
     } else {
-      // Seated on sofa
+      // Comfortably seated on sofa cushion
       speedRef.current = 0;
       isSittingRef.current = true;
-      isTalkingRef.current = presentScenePhase === 'STORY_MODE';
+      const isDadaSpeaking =
+        presentScenePhase === 'STORY_MODE' &&
+        activeDialogue?.lines[dialogueIndex]?.speaker?.toLowerCase() !== 'child';
+      isTalkingRef.current = isDadaSpeaking;
 
       groupRef.current.position.copy(sittingMarker.current);
-      const targetYaw = presentScenePhase === 'STORY_MODE' ? 0.25 : 0;
+      // Turn gently towards Vinay during storytelling
+      const targetYaw = presentScenePhase === 'STORY_MODE' ? 0.22 : 0;
       currentYaw.current = lerpAngle(currentYaw.current, targetYaw, Math.min(1, dt * 4.0));
       groupRef.current.rotation.y = currentYaw.current;
     }

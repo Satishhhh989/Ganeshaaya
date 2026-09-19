@@ -2,6 +2,7 @@ import type { StoryScene } from './storyTypes';
 import { STORY_ASSETS } from './storyAssets';
 
 export const STORY_SCENES: Record<string, StoryScene> = {
+  // Beat 1: V5 - Mount Kailash & Parvati intro
   MYTHOLOGY_INTRO: {
     id: 'scene_01_kailash',
     stateId: 'MYTHOLOGY_INTRO',
@@ -23,11 +24,11 @@ export const STORY_SCENES: Record<string, StoryScene> = {
       },
     ],
     narration: {
-      id: 'narr_01',
-      speaker: 'Dada',
-      title: 'Sacred Mount Kailash',
-      text: 'It began eons ago, high among the snow-crowned peaks of the sacred Himalayas... On Mount Kailash, the divine abode of Lord Shiva and Goddess Parvati, an eternal stillness enveloped the heavens.',
-      audio: '/assets/audio/voice/narration_01_kailash.mp3',
+      id: 'narr_v5',
+      speaker: 'Ajja',
+      title: 'Mount Kailash',
+      text: 'Long ago, on Mount Kailash, Goddess Parvati wished to create a child of her own.',
+      audio: '/assets/audio/grandpa voice/v5.mp3',
     },
     audio: {
       bgm: '/assets/audio/music/divine_kailash_ambience.mp3',
@@ -45,69 +46,15 @@ export const STORY_SCENES: Record<string, StoryScene> = {
       vignette: true,
       ambientLightColor: 'rgba(255, 235, 195, 0.1)',
     },
-    nextScene: 'PARVATI_INTRO',
-  },
-
-  PARVATI_INTRO: {
-    id: 'scene_02_parvati',
-    stateId: 'PARVATI_INTRO',
-    title: 'Goddess Parvati',
-    subtitle: 'A Mother’s Silent Wish',
-    background: STORY_ASSETS.characters.parvatiSerene.url,
-    layers: [
-      {
-        id: 'layer_parvati_main',
-        type: 'character',
-        src: STORY_ASSETS.characters.parvatiSerene.url,
-        depth: 0.35,
-        scale: 1.06,
-        animation: 'subtle_float',
-      },
-      {
-        id: 'layer_petals_drift',
-        type: 'foreground',
-        src: STORY_ASSETS.props.lotusPetalsForeground.url,
-        depth: 0.9,
-        blendMode: 'screen',
-        opacity: 0.65,
-      },
-      {
-        id: 'layer_golden_particles',
-        type: 'particles',
-        depth: 0.7,
-      },
-    ],
-    narration: {
-      id: 'narr_02',
-      speaker: 'Dada',
-      title: 'Goddess Parvati',
-      text: 'One day, while Lord Shiva was away in deep cosmic meditation, Goddess Parvati yearned for a devoted companion—someone of her very own soul, who would guard her sacred sanctuary with unwavering loyalty.',
-      audio: '/assets/audio/voice/narration_02_parvati.mp3',
-    },
-    audio: {
-      bgm: '/assets/audio/music/divine_kailash_ambience.mp3',
-      sfx: '/assets/audio/sfx/temple_chime_soft.mp3',
-    },
-    camera: {
-      initialZoom: 1.02,
-      targetZoom: 1.12,
-      panX: 1,
-      panY: -1,
-      duration: 10,
-    },
-    effects: {
-      particleType: 'lotus_drift',
-      vignette: true,
-      pulseGlow: true,
-    },
     nextScene: 'GANESHA_CREATION',
   },
 
+  // Beat 2: V6 - Sacred clay & life
   GANESHA_CREATION: {
-    id: 'scene_03_creation',
+    id: 'scene_02_creation',
     stateId: 'GANESHA_CREATION',
     title: 'The Sacred Creation',
-    subtitle: 'Molded from Sandalwood and Turmeric',
+    subtitle: 'Shaped from Sacred Clay',
     background: STORY_ASSETS.characters.parvatiCreatingClay.url,
     layers: [
       {
@@ -133,11 +80,11 @@ export const STORY_SCENES: Record<string, StoryScene> = {
       },
     ],
     narration: {
-      id: 'narr_03',
-      speaker: 'Dada',
-      title: 'Divine Sculpting',
-      text: 'With boundless motherly devotion, she gently sculpted the form of a radiant young boy from fragrant sandalwood paste and sacred turmeric, infusing the clay with divine love and celestial grace.',
-      audio: '/assets/audio/voice/narration_03_creation.mp3',
+      id: 'narr_v6',
+      speaker: 'Ajja',
+      title: 'Sacred Clay',
+      text: 'She shaped a little boy from sacred clay and, with her divine power, breathed life into him.',
+      audio: '/assets/audio/grandpa voice/v6.mp3',
     },
     audio: {
       bgm: '/assets/audio/music/divine_kailash_ambience.mp3',
@@ -158,11 +105,12 @@ export const STORY_SCENES: Record<string, StoryScene> = {
     nextScene: 'GANESHA_AWAKENING',
   },
 
+  // Beat 3: V7 - Awakening and naming Ganesha
   GANESHA_AWAKENING: {
-    id: 'scene_04_awakening',
+    id: 'scene_03_awakening',
     stateId: 'GANESHA_AWAKENING',
-    title: 'The Breath of Life',
-    subtitle: 'The Awakening of Young Ganesha',
+    title: 'The Awakening',
+    subtitle: 'Named Ganesha',
     background: STORY_ASSETS.characters.ganeshaAwakened.url,
     layers: [
       {
@@ -197,11 +145,11 @@ export const STORY_SCENES: Record<string, StoryScene> = {
       },
     ],
     narration: {
-      id: 'narr_04',
-      speaker: 'Dada',
+      id: 'narr_v7',
+      speaker: 'Ajja',
       title: 'Life Awakens',
-      text: 'Through her divine power, she breathed the sacred breath of life into the golden figure! A dazzling pulse of light erupted across the sanctuary—the boy awakened, smiling gently with pure innocence and affection.',
-      audio: '/assets/audio/voice/narration_04_awakening.mp3',
+      text: 'The boy opened his eyes, and Parvati lovingly named him Ganesha.',
+      audio: '/assets/audio/grandpa voice/v7.mp3',
     },
     audio: {
       bgm: '/assets/audio/music/divine_kailash_ambience.mp3',
@@ -223,11 +171,12 @@ export const STORY_SCENES: Record<string, StoryScene> = {
     nextScene: 'GANESHA_GUARDING',
   },
 
+  // Beat 4: V8 - Guarding the entrance command
   GANESHA_GUARDING: {
-    id: 'scene_05_guarding',
+    id: 'scene_04_guarding',
     stateId: 'GANESHA_GUARDING',
     title: 'The Sacred Duty',
-    subtitle: 'Guardian of the Mountain Gate',
+    subtitle: 'Guard the Entrance',
     background: STORY_ASSETS.characters.ganeshaGuarding.url,
     layers: [
       {
@@ -253,11 +202,11 @@ export const STORY_SCENES: Record<string, StoryScene> = {
       },
     ],
     narration: {
-      id: 'narr_05',
-      speaker: 'Dada',
-      title: 'A Mother’s Command',
-      text: 'Placing a wooden staff in his hands, Parvati instructed: "My beloved son, I go to bathe. Let no soul enter until I return." Stepping before the stone archway, young Ganesha stood steadfast and brave, dedicated to his duty.',
-      audio: '/assets/audio/voice/narration_05_guarding.mp3',
+      id: 'narr_v8',
+      speaker: 'Ajja',
+      title: 'The Command',
+      text: 'One day, Parvati asked Ganesha to guard the entrance and not allow anyone to enter.',
+      audio: '/assets/audio/grandpa voice/v8.mp3',
     },
     audio: {
       bgm: '/assets/audio/music/divine_kailash_ambience.mp3',
@@ -274,14 +223,72 @@ export const STORY_SCENES: Record<string, StoryScene> = {
       particleType: 'himalayan_snow',
       vignette: true,
     },
+    nextScene: 'GANESHA_OBEYING',
+  },
+
+  // Beat 5: V9 - Ganesha promised to obey
+  GANESHA_OBEYING: {
+    id: 'scene_05_obeying',
+    stateId: 'GANESHA_OBEYING',
+    title: 'The Devoted Promise',
+    subtitle: 'Obedience to Mother',
+    background: STORY_ASSETS.characters.ganeshaGuarding.url,
+    layers: [
+      {
+        id: 'layer_ganesha_obeying',
+        type: 'character',
+        src: STORY_ASSETS.characters.ganeshaGuarding.url,
+        depth: 0.35,
+        scale: 1.08,
+        animation: 'subtle_float',
+      },
+      {
+        id: 'layer_golden_aura_obeying',
+        type: 'effect',
+        src: STORY_ASSETS.effects.divineGoldenAura.url,
+        depth: 0.5,
+        blendMode: 'screen',
+        opacity: 0.4,
+        animation: 'glow_breathe',
+      },
+      {
+        id: 'layer_snow_dust_obeying',
+        type: 'particles',
+        depth: 0.8,
+      },
+    ],
+    narration: {
+      id: 'narr_v9',
+      speaker: 'Ajja',
+      title: 'A Son’s Vow',
+      text: 'Ganesha promised to obey his mother.',
+      audio: '/assets/audio/grandpa voice/v9.mp3',
+    },
+    audio: {
+      bgm: '/assets/audio/music/divine_kailash_ambience.mp3',
+      ambient: '/assets/audio/sfx/himalayan_wind.mp3',
+    },
+    camera: {
+      initialZoom: 1.04,
+      targetZoom: 1.12,
+      panX: 0,
+      panY: 1,
+      duration: 8,
+    },
+    effects: {
+      particleType: 'himalayan_snow',
+      vignette: true,
+      pulseGlow: true,
+    },
     nextScene: 'SHIVA_SETUP',
   },
 
+  // Beat 6: V10 - Shiva returns, Ganesha refuses to let Shiva pass
   SHIVA_SETUP: {
-    id: 'scene_06_shiva_herald',
+    id: 'scene_06_shiva_arrival',
     stateId: 'SHIVA_SETUP',
-    title: 'Herald of Mahadev',
-    subtitle: 'Thunder Upon the Snowy Peaks',
+    title: 'Return to Kailash',
+    subtitle: 'The Unknown Lord',
     background: STORY_ASSETS.backgrounds.shivaArrivalSky.url,
     layers: [
       {
@@ -298,11 +305,11 @@ export const STORY_SCENES: Record<string, StoryScene> = {
       },
     ],
     narration: {
-      id: 'narr_06',
-      speaker: 'Dada',
-      title: 'The Great Lord Approaches',
-      text: 'Suddenly, deep within the frozen valleys, the thunderous resonance of the Damru drum echoed across the mountain passes. Swirling indigo clouds gathered in the sky—Lord Shiva was returning home, unaware of the loyal guardian awaiting at the gate.',
-      audio: '/assets/audio/voice/narration_06_shiva_herald.mp3',
+      id: 'narr_v10',
+      speaker: 'Ajja',
+      title: 'Lord Shiva Returns',
+      text: 'Soon, Lord Shiva returned to Kailash.\nBut Ganesha did not know who he was, and he refused to let Shiva pass.',
+      audio: '/assets/audio/grandpa voice/v10.mp3',
     },
     audio: {
       bgm: '/assets/audio/music/shiva_arrival_storm.mp3',
@@ -320,16 +327,120 @@ export const STORY_SCENES: Record<string, StoryScene> = {
       vignette: true,
       glowColor: 'rgba(80, 140, 255, 0.4)',
     },
+    nextScene: 'SHIVA_CONFRONTATION',
+  },
+
+  // Beat 7: V11 - Shiva reasons, Ganesha stands firm
+  SHIVA_CONFRONTATION: {
+    id: 'scene_07_shiva_confrontation',
+    stateId: 'SHIVA_CONFRONTATION',
+    title: 'The Confrontation',
+    subtitle: 'Steadfast at the Gates',
+    background: STORY_ASSETS.backgrounds.shivaArrivalSky.url,
+    layers: [
+      {
+        id: 'layer_confrontation_bg',
+        type: 'background',
+        src: STORY_ASSETS.backgrounds.shivaArrivalSky.url,
+        depth: 0.2,
+        scale: 1.08,
+      },
+      {
+        id: 'layer_confrontation_guardian',
+        type: 'character',
+        src: STORY_ASSETS.characters.ganeshaGuarding.url,
+        depth: 0.4,
+        scale: 1.05,
+        animation: 'subtle_float',
+      },
+      {
+        id: 'layer_confrontation_sparks',
+        type: 'particles',
+        depth: 0.85,
+      },
+    ],
+    narration: {
+      id: 'narr_v11',
+      speaker: 'Ajja',
+      title: 'Standing Firm',
+      text: 'Shiva tried to reason with him, but Ganesha stood firmly at the door.',
+      audio: '/assets/audio/grandpa voice/v11.mp3',
+    },
+    audio: {
+      bgm: '/assets/audio/music/shiva_arrival_storm.mp3',
+      ambient: '/assets/audio/sfx/himalayan_wind.mp3',
+    },
+    camera: {
+      initialZoom: 1.05,
+      targetZoom: 1.14,
+      panX: -1,
+      panY: -1,
+      duration: 10,
+    },
+    effects: {
+      particleType: 'thunder_sparks',
+      vignette: true,
+      glowColor: 'rgba(90, 140, 240, 0.35)',
+    },
+    nextScene: 'SHIVA_BATTLE',
+  },
+
+  // Beat 8: V12 - Fierce battle that shook the heavens
+  SHIVA_BATTLE: {
+    id: 'scene_08_shiva_battle',
+    stateId: 'SHIVA_BATTLE',
+    title: 'The Cosmic Disagreement',
+    subtitle: 'Shaking the Heavens',
+    background: STORY_ASSETS.backgrounds.shivaArrivalSky.url,
+    layers: [
+      {
+        id: 'layer_battle_sky',
+        type: 'background',
+        src: STORY_ASSETS.backgrounds.shivaArrivalSky.url,
+        depth: 0.25,
+        scale: 1.1,
+      },
+      {
+        id: 'layer_battle_sparks',
+        type: 'particles',
+        depth: 0.9,
+      },
+    ],
+    narration: {
+      id: 'narr_v12',
+      speaker: 'Ajja',
+      title: 'The Clash',
+      text: 'Their disagreement turned into a fierce battle that shook the heavens.',
+      audio: '/assets/audio/grandpa voice/v12.mp3',
+    },
+    audio: {
+      bgm: '/assets/audio/music/shiva_arrival_storm.mp3',
+      sfx: '/assets/audio/sfx/distant_thunder_damru.mp3',
+    },
+    camera: {
+      initialZoom: 1.0,
+      targetZoom: 1.18,
+      panX: 0,
+      panY: -2,
+      duration: 12,
+    },
+    effects: {
+      particleType: 'thunder_sparks',
+      vignette: true,
+      glowColor: 'rgba(240, 120, 60, 0.45)',
+    },
     nextScene: 'SHIVA_SEQUENCE_READY',
   },
 };
 
 export const STORY_SEQUENCE_ORDER: StoryScene['stateId'][] = [
   'MYTHOLOGY_INTRO',
-  'PARVATI_INTRO',
   'GANESHA_CREATION',
   'GANESHA_AWAKENING',
   'GANESHA_GUARDING',
+  'GANESHA_OBEYING',
   'SHIVA_SETUP',
+  'SHIVA_CONFRONTATION',
+  'SHIVA_BATTLE',
   'SHIVA_SEQUENCE_READY',
 ];

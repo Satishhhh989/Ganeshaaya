@@ -1,15 +1,112 @@
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useGameState } from '../../core/GameState';
 
 export function AtmosphereLighting() {
+  const { presentScenePhase, timePassageStage = 0 } = useGameState();
+
+  const sunLightRef = useRef<THREE.DirectionalLight>(null);
+  const hemiLightRef = useRef<THREE.HemisphereLight>(null);
+  const ambientLightRef = useRef<THREE.AmbientLight>(null);
   const diyaLight1 = useRef<THREE.PointLight>(null);
   const diyaLight2 = useRef<THREE.PointLight>(null);
   const fireplaceLight = useRef<THREE.PointLight>(null);
 
-  // Subtle organic flicker for flame lights
-  useFrame((state) => {
+  // Target lighting characteristics based on narrative time passage stage
+  const lightingTargets = useMemo(() => {
+    if (presentScenePhase === 'TIME_PASSAGE') {
+      if (timePassageStage === 0) {
+        // Childhood 2012: Warm golden afternoon sunlight streaming onto sofa
+        return {
+          sunColor: new THREE.Color('#fff0d6'),
+          sunIntensity: 2.3,
+          sunPos: [7, 11, 2],
+          ambientColor: new THREE.Color('#ffdcb0'),
+          ambientIntensity: 0.45,
+          hemiSky: new THREE.Color('#fff1db'),
+          hemiGround: new THREE.Color('#3d2719'),
+        };
+      } else if (timePassageStage === 1) {
+        // School Years 2016: Crisp fresh morning sunlight
+        return {
+          sunColor: new THREE.Color('#fffbe6'),
+          sunIntensity: 2.6,
+          sunPos: [8, 12, 1],
+          ambientColor: new THREE.Color('#e8f4f8'),
+          ambientIntensity: 0.48,
+          hemiSky: new THREE.Color('#f0f9ff'),
+          hemiGround: new THREE.Color('#38281d'),
+        };
+      } else if (timePassageStage === 2) {
+        // College Years 2020: Golden hour / twilight into cozy evening
+        return {
+          sunColor: new THREE.Color('#fca311'),
+          sunIntensity: 1.7,
+          sunPos: [5, 6, 3],
+          ambientColor: new THREE.Color('#ffc300'),
+          ambientIntensity: 0.4,
+          hemiSky: new THREE.Color('#fed9b7'),
+          hemiGround: new THREE.Color('#2d1e15'),
+        };
+      }
+    }
+
+    if (presentScenePhase === 'ANNUAL_FESTIVAL_MONTAGE') {
+      // Festive warmth: marigold golden celebratory glow
+      return {
+        sunColor: new THREE.Color('#ffb703'),
+        sunIntensity: 2.4,
+        sunPos: [6, 10, 2],
+        ambientColor: new THREE.Color('#ffe5b4'),
+        ambientIntensity: 0.52,
+        hemiSky: new THREE.Color('#ffecd1'),
+        hemiGround: new THREE.Color('#3e2213'),
+      };
+    }
+
+    // Default / Adult Present Day 2024: Calm, clear, mature daylight
+    return {
+      sunColor: new THREE.Color('#ffffff'),
+      sunIntensity: 2.2,
+      sunPos: [7, 11, 2],
+      ambientColor: new THREE.Color('#fff4e6'),
+      ambientIntensity: 0.45,
+      hemiSky: new THREE.Color('#fff1db'),
+      hemiGround: new THREE.Color('#3d2719'),
+    };
+  }, [presentScenePhase, timePassageStage]);
+
+  // Smooth dynamic light morphing and organic flame flickers
+  useFrame((state, delta) => {
+    const dt = Math.min(delta, 0.1);
     const time = state.clock.getElapsedTime();
+
+    // Lerp lighting towards targets
+    if (sunLightRef.current) {
+      sunLightRef.current.color.lerp(lightingTargets.sunColor, dt * 2.0);
+      sunLightRef.current.intensity = THREE.MathUtils.lerp(
+        sunLightRef.current.intensity,
+        lightingTargets.sunIntensity,
+        dt * 2.0
+      );
+    }
+
+    if (ambientLightRef.current) {
+      ambientLightRef.current.color.lerp(lightingTargets.ambientColor, dt * 2.0);
+      ambientLightRef.current.intensity = THREE.MathUtils.lerp(
+        ambientLightRef.current.intensity,
+        lightingTargets.ambientIntensity,
+        dt * 2.0
+      );
+    }
+
+    if (hemiLightRef.current) {
+      hemiLightRef.current.color.lerp(lightingTargets.hemiSky, dt * 2.0);
+      hemiLightRef.current.groundColor.lerp(lightingTargets.hemiGround, dt * 2.0);
+    }
+
+    // Organic flame flickers
     if (diyaLight1.current) {
       diyaLight1.current.intensity = 2.0 + Math.sin(time * 12) * 0.18 + Math.cos(time * 7) * 0.12;
     }
@@ -25,16 +122,18 @@ export function AtmosphereLighting() {
     <>
       {/* Rich warm hemisphere ambient bounce */}
       <hemisphereLight
+        ref={hemiLightRef}
         color="#fff1db"
         groundColor="#3d2719"
         intensity={0.75}
       />
 
       {/* Soft warm ambient fill */}
-      <ambientLight color="#ffdcb0" intensity={0.45} />
+      <ambientLight ref={ambientLightRef} color="#ffdcb0" intensity={0.45} />
 
-      {/* Golden afternoon sunlight streaming through windows */}
+      {/* Dynamic sunlight streaming through windows */}
       <directionalLight
+        ref={sunLightRef}
         position={[7, 11, 2]}
         color="#fff0d6"
         intensity={2.2}

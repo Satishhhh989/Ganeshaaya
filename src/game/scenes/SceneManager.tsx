@@ -3,9 +3,14 @@ import { PresentHomeScene } from './present/PresentHomeScene';
 import { MythologyShiva3D } from './mythology/MythologyShivaScene';
 import { CompetitionScene } from './competition/CompetitionScene';
 import { PandalScene } from './pandal/PandalScene';
+import { MenuScene } from './menu/MenuScene';
 
 export function SceneManager() {
-  const { currentScene } = useGameState();
+  const { currentScene, gameState } = useGameState();
+
+  if (gameState === 'MENU') {
+    return <MenuScene />;
+  }
 
   switch (currentScene) {
     case 'PRESENT_HOME':

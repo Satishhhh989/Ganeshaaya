@@ -1,155 +1,202 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useGameState, gameStateStore } from '../../core/GameState';
-import { audioManager } from '../../audio/AudioManager';
 import { ASSET_CONFIG } from '../../core/assetConfig';
+import { audioManager } from '../../audio/AudioManager';
 
 export function InteractionPrompt() {
-  const { activeInteraction, gameState, presentScenePhase, playerPos } = useGameState();
+  const { gameState, presentScenePhase, activeInteraction } = useGameState();
+  const [isHovered, setIsHovered] = useState(false);
+  const [isProximityMet, setIsProximityMet] = useState(false);
+  const isTriggeredRef = useRef(false);
 
-  if (gameState !== 'PLAYING' || presentScenePhase !== 'APPROACH') {
-    return null;
-  }
+  // High-frequency frame check for continuous proximity & orientation tracking
+  useEffect(() => {
+    if (gameState !== 'PLAYING' || presentScenePhase !== 'APPROACH') {
+      setIsProximityMet(false);
+      return;
+    }
 
-  // Check distance to Dada directly as a robust guarantee
-  const dadaPos = ASSET_CONFIG.staging.oldManStanding;
-  const dx = (playerPos ? playerPos[0] : 0.6) - dadaPos[0];
-  const dz = (playerPos ? playerPos[2] : 5.2) - dadaPos[2];
-  const dist = Math.sqrt(dx * dx + dz * dz);
+    let animId: number;
+    const checkProximity = () => {
+      const state = gameStateStore.getState();
+      if (
+        state.gameState === 'PLAYING' &&
+        state.presentScenePhase === 'APPROACH' &&
+        state.playerPos
+      ) {
+        const [px, , pz] = state.playerPos;
+        const [dx, , dz] = ASSET_CONFIG.staging.oldManStanding;
+        const diffX = dx - px;
+        const diffZ = dz - pz;
+        const dist = Math.hypot(diffX, diffZ);
 
-  const isNearby = dist <= 3.8 || activeInteraction !== null;
+        // Within interactionRadius (~2.5m)
+        if (dist <= ASSET_CONFIG.staging.interactionRadius) {
+          const rot = state.playerRot ?? 0;
+          const forwardX = Math.sin(rot);
+          const forwardZ = Math.cos(rot);
+          const dirX = diffX / dist;
+          const dirZ = diffZ / dist;
+          const dot = forwardX * dirX + forwardZ * dirZ;
 
-  if (!isNearby) {
-    return null;
-  }
+          // Forgiving cone: generally facing Dada (not walking backwards away)
+          const isFacing = dot >= -0.25;
+          setIsProximityMet(isFacing);
+        } else {
+          setIsProximityMet(false);
+        }
+      } else {
+        setIsProximityMet(false);
+      }
+      animId = requestAnimationFrame(checkProximity);
+    };
+
+    animId = requestAnimationFrame(checkProximity);
+    return () => cancelAnimationFrame(animId);
+  }, [gameState, presentScenePhase]);
+
+  const isVisible =
+    gameState === 'PLAYING' &&
+    presentScenePhase === 'APPROACH' &&
+    (isProximityMet || Boolean(activeInteraction && activeInteraction.id === 'npc_old_man'));
+
+  const triggerInteraction = useCallback(() => {
+    if (isTriggeredRef.current) return;
+    isTriggeredRef.current = true;
+
+    audioManager.playTempleBell();
+    gameStateStore.setActiveInteraction(null);
+    gameStateStore.setPresentScenePhase('INITIAL_DIALOGUE');
+    gameStateStore.startDialogue();
+
+    setTimeout(() => {
+      isTriggeredRef.current = false;
+    }, 400);
+  }, []);
+
+  // Keyboard navigation [E] active strictly when within proximity
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'KeyE' || e.key === 'e' || e.key === 'E') {
+        e.preventDefault();
+        e.stopPropagation();
+        triggerInteraction();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isVisible, triggerInteraction]);
 
   const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
-    if (activeInteraction?.onInteract) {
-      activeInteraction.onInteract();
-    } else {
-      audioManager.playTempleBell();
-      gameStateStore.setPresentScenePhase('INITIAL_DIALOGUE');
-      gameStateStore.startDialogue();
+    if (isVisible) {
+      triggerInteraction();
     }
   };
 
   return (
     <div
+      data-ui="prompt-wrapper"
       style={{
-        position: 'absolute',
-        bottom: '16%',
+        position: 'fixed',
+        bottom: '22%',
         left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 70,
-        pointerEvents: 'auto',
+        transform: `translateX(-50%) translateY(${isVisible ? '0px' : '12px'}) scale(${isVisible ? 1.0 : 0.92})`,
+        zIndex: 65,
+        pointerEvents: isVisible ? 'auto' : 'none',
+        opacity: isVisible ? 1 : 0,
+        transition: 'opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+        userSelect: 'none',
       }}
     >
       <button
+        type="button"
+        data-ui="prompt"
         onClick={handleClick}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         style={{
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
-          gap: '16px',
-          backgroundColor: 'rgba(18, 13, 10, 0.94)',
-          border: '2px solid #f5b041',
-          padding: '14px 32px',
-          borderRadius: '36px',
+          gap: '8px',
+          background: isHovered
+            ? 'linear-gradient(180deg, rgba(46, 20, 36, 0.96) 0%, rgba(26, 10, 20, 0.98) 100%)'
+            : 'linear-gradient(180deg, rgba(32, 14, 25, 0.88) 0%, rgba(18, 8, 15, 0.92) 100%)',
+          border: isHovered
+            ? '1.5px solid #ffde8a'
+            : '1px solid rgba(229, 192, 123, 0.65)',
+          borderRadius: '8px',
+          padding: '10px 22px',
           cursor: 'pointer',
-          backdropFilter: 'blur(16px)',
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.85), 0 0 28px rgba(245, 176, 65, 0.55)',
-          transition: 'all 0.25s ease-in-out',
           outline: 'none',
-          animation: 'promptButtonGlow 2s infinite ease-in-out',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'scale(1.06)';
-          e.currentTarget.style.backgroundColor = 'rgba(28, 18, 12, 0.98)';
-          e.currentTarget.style.borderColor = '#ffcf70';
-          e.currentTarget.style.boxShadow =
-            '0 12px 48px rgba(0, 0, 0, 0.95), 0 0 36px rgba(245, 176, 65, 0.85)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'scale(1)';
-          e.currentTarget.style.backgroundColor = 'rgba(18, 13, 10, 0.94)';
-          e.currentTarget.style.borderColor = '#f5b041';
-          e.currentTarget.style.boxShadow =
-            '0 10px 40px rgba(0, 0, 0, 0.85), 0 0 28px rgba(245, 176, 65, 0.55)';
+          boxShadow: isHovered
+            ? '0 0 20px rgba(229, 192, 123, 0.5), 0 8px 24px rgba(0, 0, 0, 0.8)'
+            : '0 0 10px rgba(229, 192, 123, 0.2), 0 4px 16px rgba(0, 0, 0, 0.65)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          transform: isHovered ? 'scale(1.04)' : 'scale(1.0)',
+          transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
-        {/* Key Badge */}
+        {/* Minimal key badge: [ E ] */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            width: '32px',
-            height: '32px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(224, 106, 32, 0.35)',
-            border: '1.5px solid #f5b041',
-            color: '#fff',
-            fontWeight: 800,
-            fontSize: '14px',
+            width: '28px',
+            height: '28px',
+            borderRadius: '4px',
+            background: 'rgba(229, 192, 123, 0.18)',
+            border: '1px solid rgba(229, 192, 123, 0.65)',
+            color: '#ffffff',
             fontFamily: "'Outfit', sans-serif",
-            boxShadow: '0 0 10px rgba(245, 176, 65, 0.4)',
+            fontSize: '13px',
+            fontWeight: 700,
+            letterSpacing: '0.04em',
+            boxShadow: '0 1px 4px rgba(0, 0, 0, 0.5)',
           }}
         >
           E
         </div>
 
-        {/* Action Label */}
-        <div style={{ textAlign: 'left' }}>
-          <div
-            style={{
-              color: '#ffffff',
-              fontSize: '16px',
-              fontWeight: 700,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              fontFamily: "'Marcellus', serif",
-              textShadow: '0 2px 8px rgba(0,0,0,0.8)',
-            }}
-          >
-            Talk to Dada
-          </div>
-          <div
-            style={{
-              color: '#f5ca75',
-              fontSize: '12px',
-              fontFamily: "'Outfit', sans-serif",
-              letterSpacing: '0.05em',
-            }}
-          >
-            Click here or press [E] to start story ➔
-          </div>
-        </div>
-
-        {/* Big Animated Arrow */}
+        {/* Action Prompt Text */}
         <div
           style={{
-            color: '#f5b041',
-            fontSize: '22px',
-            fontWeight: 'bold',
-            animation: 'arrowBounce 1.2s infinite ease-in-out',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '3px',
           }}
         >
-          ➔
+          <span
+            style={{
+              fontFamily: "'Cinzel', 'Marcellus', serif",
+              fontSize: '11px',
+              fontWeight: 700,
+              letterSpacing: '0.22em',
+              color: isHovered ? '#ffffff' : '#f5e8d2',
+              textTransform: 'uppercase',
+              textShadow: '0 2px 6px rgba(0, 0, 0, 0.9)',
+              transition: 'color 0.15s ease',
+            }}
+          >
+            TALK TO DADA
+          </span>
+          <div
+            style={{
+              width: '24px',
+              height: '1px',
+              background: 'linear-gradient(90deg, transparent, rgba(229, 192, 123, 0.7), transparent)',
+            }}
+          />
         </div>
       </button>
-
-      <style>{`
-        @keyframes promptButtonGlow {
-          0%, 100% {
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.85), 0 0 28px rgba(245, 176, 65, 0.45);
-          }
-          50% {
-            box-shadow: 0 10px 44px rgba(0, 0, 0, 0.9), 0 0 38px rgba(245, 176, 65, 0.8);
-          }
-        }
-        @keyframes arrowBounce {
-          0%, 100% { transform: translateX(0); }
-          50% { transform: translateX(6px); }
-        }
-      `}</style>
     </div>
   );
 }

@@ -63,14 +63,27 @@ export function FinalCelebrationCinematic() {
 
   // Phase timings:
   // 0.0s - 4.5s: Close up on Vinay & Dada
-  // 4.5s - 11.0s: Wide reveal of illuminated pandal
+  // 4.5s - 11.0s: Wide reveal of illuminated pandal with Dada's memory callback
   // 11.0s - 16.5s: Hold on Ganesha
   // 16.5s - 21.0s: Tilt up to night sky
   // 21.0s - 26.5s: "Ganpati Bappa Morya"
-  // 26.5s+: "THE END"
+  // 26.5s+: "विनायक: THE FIRST PRAYER"
+  const showDadaMemory = elapsedTime >= 3.5 && elapsedTime < 12.0;
   const showBappaText = elapsedTime >= 20.5 && elapsedTime < 27.0;
   const showTheEnd = elapsedTime >= 27.0;
   const showMenuButton = elapsedTime >= 29.5;
+
+  const [showCreditsModal, setShowCreditsModal] = useState(false);
+
+  const handlePlayAgain = () => {
+    if (isFadingToMenu) return;
+    setIsFadingToMenu(true);
+    audioManager.playUIClick();
+    setTimeout(() => {
+      gameStateStore.openMenu();
+      gameStateStore.startGame();
+    }, 1200);
+  };
 
   return (
     <div
@@ -108,6 +121,50 @@ export function FinalCelebrationCinematic() {
         {elapsedTime >= 4.5 && elapsedTime < 11.0 && 'The Illuminated Pandal · Community & Faith Reunited'}
         {elapsedTime >= 11.0 && elapsedTime < 16.5 && 'Sri Ganesha · The Remover of All Obstacles'}
       </div>
+
+      {/* ─── DADA'S MEMORY CALLBACK (CHILDHOOD VOICE RE-ECHOES) ─── */}
+      {showDadaMemory && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 'clamp(80px, 16vh, 120px)',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            maxWidth: '780px',
+            width: '90%',
+            textAlign: 'center',
+            zIndex: 160,
+            pointerEvents: 'none',
+            animation: 'fadeIn 1.2s ease-out',
+          }}
+        >
+          <div
+            style={{
+              fontFamily: "'Cinzel', serif",
+              fontSize: '11px',
+              color: '#ffb703',
+              letterSpacing: '0.25em',
+              textTransform: 'uppercase',
+              marginBottom: '6px',
+            }}
+          >
+            Dada’s Voice from Childhood
+          </div>
+          <p
+            style={{
+              margin: 0,
+              fontFamily: "'Marcellus', serif",
+              fontSize: 'clamp(1.15rem, 2.2vw, 1.45rem)',
+              color: '#fffbeb',
+              fontStyle: 'italic',
+              lineHeight: 1.65,
+              textShadow: '0 2px 14px rgba(0, 0, 0, 0.95), 0 0 20px rgba(255, 183, 3, 0.4)',
+            }}
+          >
+            “Vinay, my boy... when your intentions are pure, the universe clears your path.”
+          </p>
+        </div>
+      )}
 
       {/* ─── CENTER TYPOGRAPHY SEQUENCE ─── */}
       <div
@@ -155,7 +212,7 @@ export function FinalCelebrationCinematic() {
           </div>
         </div>
 
-        {/* "THE END" Title */}
+        {/* TITLE: "विनायक: THE FIRST PRAYER" */}
         <div
           style={{
             position: 'absolute',
@@ -165,39 +222,84 @@ export function FinalCelebrationCinematic() {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: '20px',
+            gap: '14px',
             pointerEvents: showMenuButton ? 'auto' : 'none',
           }}
         >
           <div
             style={{
-              fontSize: 'clamp(2.2rem, 5.5vw, 3.8rem)',
-              color: '#ffffff',
+              fontFamily: "'Cinzel', 'Marcellus', serif",
+              fontSize: '13px',
               letterSpacing: '0.35em',
+              color: 'rgba(254, 240, 138, 0.75)',
               textTransform: 'uppercase',
-              textShadow: '0 0 40px rgba(255, 255, 255, 0.5), 0 4px 20px rgba(0, 0, 0, 0.95)',
+            }}
+          >
+            A Sacred Story of Love, Effort & Community
+          </div>
+
+          <h1
+            style={{
+              fontSize: 'clamp(2.4rem, 5.8vw, 4.4rem)',
+              color: '#ffffff',
+              letterSpacing: '0.12em',
+              textShadow: '0 0 40px rgba(255, 183, 3, 0.6), 0 4px 20px rgba(0, 0, 0, 0.95)',
               margin: 0,
             }}
           >
-            THE END
-          </div>
+            विनायक: The First Prayer
+          </h1>
 
           <div
             style={{
-              width: '48px',
+              width: '56px',
               height: '1px',
               background: 'linear-gradient(90deg, transparent, rgba(255, 183, 3, 0.8), transparent)',
             }}
           />
 
-          {/* Minimal Return to Menu Action */}
+          {/* Action Buttons: Play Again, Return to Menu, Credits */}
           <div
             style={{
+              display: 'flex',
+              gap: '14px',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexWrap: 'wrap',
               transition: 'opacity 1.8s ease',
               opacity: showMenuButton ? 1 : 0,
               marginTop: '16px',
             }}
           >
+            <button
+              onClick={handlePlayAgain}
+              style={{
+                background: 'linear-gradient(135deg, rgba(245, 176, 65, 0.35), rgba(217, 119, 6, 0.35))',
+                border: '1.5px solid #ffb703',
+                color: '#ffffff',
+                borderRadius: '30px',
+                padding: '12px 28px',
+                fontFamily: "'Outfit', sans-serif",
+                fontSize: '12.5px',
+                fontWeight: 700,
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+                boxShadow: '0 4px 20px rgba(245, 176, 65, 0.35)',
+                transition: 'all 0.25s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(245, 176, 65, 0.55), rgba(217, 119, 6, 0.55))';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(245, 176, 65, 0.35), rgba(217, 119, 6, 0.35))';
+              }}
+            >
+              ↺ Play Again
+            </button>
+
             <button
               onClick={handleReturnToMenu}
               style={{
@@ -205,15 +307,14 @@ export function FinalCelebrationCinematic() {
                 border: '1px solid rgba(255, 183, 3, 0.45)',
                 color: '#fdf7ea',
                 borderRadius: '30px',
-                padding: '12px 36px',
+                padding: '12px 28px',
                 fontFamily: "'Outfit', sans-serif",
-                fontSize: '13.5px',
-                letterSpacing: '0.22em',
+                fontSize: '12.5px',
+                fontWeight: 600,
+                letterSpacing: '0.18em',
                 textTransform: 'uppercase',
                 cursor: 'pointer',
-                boxShadow: '0 4px 24px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 183, 3, 0.2)',
-                outline: 'none',
-                transition: 'all 0.3s ease',
+                transition: 'all 0.25s ease',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = '#ffb703';
@@ -226,20 +327,56 @@ export function FinalCelebrationCinematic() {
                 e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
-              Return to Main Menu
+              ⌂ Main Menu
             </button>
-            <div
+
+            <button
+              onClick={() => {
+                audioManager.playUIClick();
+                setShowCreditsModal((prev) => !prev);
+              }}
               style={{
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                color: '#cbd5e1',
+                borderRadius: '30px',
+                padding: '12px 24px',
                 fontFamily: "'Outfit', sans-serif",
-                fontSize: '11px',
-                color: 'rgba(255, 255, 255, 0.4)',
-                letterSpacing: '0.12em',
-                marginTop: '10px',
+                fontSize: '12.5px',
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+                transition: 'all 0.25s ease',
               }}
             >
-              [Press Space or Enter]
-            </div>
+              📜 Credits
+            </button>
           </div>
+
+          {/* Credits Box (Toggleable) */}
+          {showCreditsModal && (
+            <div
+              style={{
+                marginTop: '16px',
+                padding: '18px 24px',
+                background: 'rgba(15, 12, 10, 0.95)',
+                border: '1px solid rgba(254, 240, 138, 0.35)',
+                borderRadius: '8px',
+                maxWidth: '520px',
+                animation: 'fadeIn 0.3s ease-out',
+                color: '#cbd5e1',
+                fontSize: '12px',
+                fontFamily: "'Outfit', sans-serif",
+                lineHeight: 1.6,
+              }}
+            >
+              <div style={{ color: '#ffb703', fontWeight: 700, fontFamily: "'Cinzel', serif", marginBottom: '6px' }}>
+                CREATIVE DEVOTION & CRAFTSMANSHIP
+              </div>
+              <div>Dedicated to the eternal teachings of grandfather and the spirit of Ganesh Chaturthi.</div>
+              <div style={{ marginTop: '6px', color: '#94a3b8' }}>Engineered with Three.js, React, and WebGL.</div>
+            </div>
+          )}
         </div>
       </div>
 

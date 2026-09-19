@@ -1,7 +1,7 @@
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, lazy } from 'react';
 import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
-import { useGameState } from './GameState';
+import { useGameState, gameStateStore } from './GameState';
 import { audioManager } from '../audio/AudioManager';
 import { SceneManager } from '../scenes/SceneManager';
 import { PlayerController } from '../player/PlayerController';
@@ -25,8 +25,10 @@ import { FestivalArrivalModal } from '../scenes/pandal/FestivalArrivalModal';
 import { CelebrationHUD } from '../scenes/pandal/CelebrationHUD';
 import { FinalCelebrationCinematic } from '../scenes/pandal/FinalCelebrationCinematic';
 
+const GameArcade = lazy(() => import('../arcade/ui/GameArcade').then(m => ({ default: m.GameArcade })));
+
 export function GameEngine() {
-  const { gameState, currentScene, presentScenePhase } = useGameState();
+  const { gameState, currentScene, presentScenePhase, arcadeActive } = useGameState();
 
   // Listen for 'E' keypress to trigger nearby interactions
   useInteractionListener();
@@ -91,7 +93,8 @@ export function GameEngine() {
         >
           <Suspense fallback={null}>
             <SceneManager />
-            {(currentScene === 'PRESENT_HOME' || currentScene === 'PANDAL') && <PlayerController />}
+            {(currentScene === 'PRESENT_HOME' || currentScene === 'PANDAL') &&
+              gameState !== 'MENU' && <PlayerController />}
           </Suspense>
         </Canvas>
       </div>
@@ -148,6 +151,13 @@ export function GameEngine() {
 
       {/* Grand Evening Aarti & Full-Circle Retrospective Cinematic */}
       {currentScene === 'PANDAL' && <FinalCelebrationCinematic />}
+
+      {/* Game Arcade — Vinay's Mini-Game Collection */}
+      {arcadeActive && (
+        <Suspense fallback={null}>
+          <GameArcade onComplete={() => gameStateStore.exitArcade()} />
+        </Suspense>
+      )}
     </div>
   );
 }

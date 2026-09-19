@@ -19,7 +19,17 @@ interface KeyState {
 
 export function PlayerController() {
   const { camera } = useThree();
-  const { gameState, currentScene, presentScenePhase, controlsLocked, isChildSitting, isAdultProtagonist } = useGameState();
+  const {
+    gameState,
+    currentScene,
+    presentScenePhase,
+    controlsLocked,
+    isChildSitting,
+    isAdultProtagonist,
+    activeDialogue,
+    dialogueIndex,
+    timePassageStage,
+  } = useGameState();
 
   const initialSpawn: [number, number, number] = ASSET_CONFIG.staging.childSpawn;
   const physicsRef = useRef(new PlayerPhysics(initialSpawn));
@@ -122,6 +132,7 @@ export function PlayerController() {
     const isFreeRoam =
       (presentScenePhase === 'APPROACH' ||
         presentScenePhase === 'PANDAL_BUILDING' ||
+        presentScenePhase === 'FESTIVAL_PREPARATION' ||
         presentScenePhase === 'GANESH_CHATURTHI_CELEBRATION') &&
       gameState === 'PLAYING' &&
       !controlsLocked;
@@ -154,8 +165,15 @@ export function PlayerController() {
 
       // Update physics
       const { position: newPos, speed } = physics.update(moveDir, running, dt);
-      currentSpeed.current = speed;
+      const actualSpeed = moveDir.lengthSq() > 0.001 ? speed : 0;
+      currentSpeed.current = actualSpeed;
       playerPos.current.copy(newPos);
+
+      // Strict velocity-based motion state: velocity ≈ 0 -> IDLE
+      gameStateStore.setPlayerMotion(
+        actualSpeed,
+        actualSpeed < 0.08 ? 'IDLE' : (running ? 'RUN' : 'WALK')
+      );
 
       if (groupRef.current) {
         groupRef.current.position.copy(newPos);
@@ -187,7 +205,7 @@ export function PlayerController() {
         running
       );
 
-      interactionManager.update([newPos.x, newPos.y, newPos.z]);
+      interactionManager.update([newPos.x, newPos.y, newPos.z], currentRotation.current);
 
     } else if (presentScenePhase === 'INITIAL_DIALOGUE') {
       // Face Old Man during dialogue
@@ -222,20 +240,20 @@ export function PlayerController() {
       }
 
     } else if (presentScenePhase === 'CHILD_WALKING_SOFA') {
-      // Child walks to sofa seat
+      // Child walks to sofa seat at floor level
       const seat = childSeatPos.current;
-      const toSeat = new THREE.Vector3().subVectors(seat, playerPos.current);
-      toSeat.y = 0;
+      const toSeat = new THREE.Vector3(seat.x - playerPos.current.x, 0, seat.z - playerPos.current.z);
       const dist = toSeat.length();
 
       if (dist > 0.08) {
         const walkDir = toSeat.clone().normalize();
-        const walkSpeed = 1.1;
+        const walkSpeed = 1.05;
         playerPos.current.addScaledVector(walkDir, walkSpeed * dt);
-        physics.setPosition(playerPos.current.x, playerPos.current.y, playerPos.current.z);
+        playerPos.current.y = 0.0; // Stay grounded on carpet while walking
+        physics.setPosition(playerPos.current.x, 0, playerPos.current.z);
 
         const targetRot = Math.atan2(walkDir.x, walkDir.z);
-        currentRotation.current = lerpAngle(currentRotation.current, targetRot, Math.min(1, 10 * dt));
+        currentRotation.current = lerpAngle(currentRotation.current, targetRot, Math.min(1, 8 * dt));
         currentSpeed.current = walkSpeed;
         isRunning.current = false;
 
@@ -247,9 +265,10 @@ export function PlayerController() {
         }
       } else {
         // Reached seat
-        playerPos.current.copy(seat);
-        physics.setPosition(seat.x, seat.y, seat.z);
+        playerPos.current.x = seat.x;
+        playerPos.current.z = seat.z;
         currentSpeed.current = 0;
+        sittingTimer.current = 0;
         gameStateStore.setPresentScenePhase('CHILD_SITTING');
       }
 
@@ -259,34 +278,110 @@ export function PlayerController() {
       }
 
     } else if (presentScenePhase === 'CHILD_SITTING') {
-      // Settle into sitting pose
+      // Settle gently into sitting pose on sofa cushion
       currentSpeed.current = 0;
       isRunning.current = false;
 
+      sittingTimer.current += dt;
+      const progress = Math.min(1, sittingTimer.current / 0.8);
+      const ease = progress * progress * (3 - 2 * progress);
+      const seatY = THREE.MathUtils.lerp(0.0, childSeatPos.current.y, ease);
+      playerPos.current.y = seatY;
+
       if (groupRef.current) {
-        // Turn to face forward (into the room, yaw = 0)
+        // Turn to face forward into the room (yaw = 0)
         currentRotation.current = lerpAngle(currentRotation.current, 0, Math.min(1, 6 * dt));
+        groupRef.current.rotation.y = currentRotation.current;
+        groupRef.current.position.set(childSeatPos.current.x, seatY, childSeatPos.current.z);
+      }
+
+      if (sittingTimer.current > 1.4) {
+        gameStateStore.startStoryMode();
+      }
+
+    } else if (presentScenePhase === 'STORY_MODE') {
+      // Comfortably seated on sofa cushion next to Dada during storytelling
+      currentSpeed.current = 0;
+      isRunning.current = false;
+      playerPos.current.copy(childSeatPos.current);
+
+      if (groupRef.current) {
+        // Face forward with subtle natural head tilt towards Dada
+        currentRotation.current = lerpAngle(currentRotation.current, -0.15, Math.min(1, 4 * dt));
         groupRef.current.rotation.y = currentRotation.current;
         groupRef.current.position.copy(childSeatPos.current);
       }
 
-      sittingTimer.current += dt;
-      if (sittingTimer.current > 1.3) {
-        gameStateStore.startStoryMode();
-      }
-
-    } else if (presentScenePhase === 'GAME_DEVELOPMENT_READY' || presentScenePhase === 'GAME_DEVELOPMENT') {
-      // Seated at developer workstation
+    } else if (presentScenePhase === 'TIME_PASSAGE') {
       currentSpeed.current = 0;
       isRunning.current = false;
-      const deskSeatPos = new THREE.Vector3(2.4, 0, 3.95);
+      const stage = timePassageStage ?? 0;
+      let targetPos: THREE.Vector3;
+      let targetRot = 0;
+
+      if (stage === 0) {
+        // Little child seated on sofa cushion next to Dada
+        targetPos = new THREE.Vector3(childSeatPos.current.x, childSeatPos.current.y, childSeatPos.current.z);
+        targetRot = 0;
+      } else if (stage === 1) {
+        // School years: standing in room, studying
+        targetPos = new THREE.Vector3(0.65, 0.0, 3.65);
+        targetRot = -0.3;
+      } else if (stage === 2) {
+        // College years: standing near study desk / window
+        targetPos = new THREE.Vector3(1.75, 0.0, 3.8);
+        targetRot = -Math.PI / 2;
+      } else {
+        // Young adult: standing proudly in center of living room
+        targetPos = new THREE.Vector3(0.4, 0.0, 3.5);
+        targetRot = -0.15;
+      }
+
+      playerPos.current.lerp(targetPos, Math.min(1, 4 * dt));
+      currentRotation.current = lerpAngle(currentRotation.current, targetRot, Math.min(1, 4 * dt));
+
+      if (groupRef.current) {
+        groupRef.current.position.copy(playerPos.current);
+        groupRef.current.rotation.y = currentRotation.current;
+      }
+    } else if (
+      presentScenePhase === 'ADULT_PROTAGONIST' ||
+      presentScenePhase === 'ANNUAL_FESTIVAL_MONTAGE' ||
+      presentScenePhase === 'CURRENT_YEAR'
+    ) {
+      currentSpeed.current = 0;
+      isRunning.current = false;
+      const targetPos = new THREE.Vector3(0.4, 0.0, 3.5);
+      playerPos.current.lerp(targetPos, Math.min(1, 4 * dt));
+      currentRotation.current = lerpAngle(currentRotation.current, -0.15, Math.min(1, 4 * dt));
+
+      if (groupRef.current) {
+        groupRef.current.position.copy(playerPos.current);
+        groupRef.current.rotation.y = currentRotation.current;
+      }
+    } else if (presentScenePhase === 'FINANCIAL_PROBLEM' || presentScenePhase === 'COMPETITION_DISCOVERY') {
+      currentSpeed.current = 0;
+      isRunning.current = false;
+      const deskChairPos = new THREE.Vector3(1.85, 0.0, 3.4);
+      playerPos.current.lerp(deskChairPos, Math.min(1, 6 * dt));
+      currentRotation.current = lerpAngle(currentRotation.current, Math.PI / 2, Math.min(1, 6 * dt));
+
+      if (groupRef.current) {
+        groupRef.current.position.copy(playerPos.current);
+        groupRef.current.rotation.y = currentRotation.current;
+      }
+    } else if (presentScenePhase === 'GAME_DEVELOPMENT_READY' || presentScenePhase === 'GAME_DEVELOPMENT') {
+      // Seated directly on the ergonomic office chair facing the desk & laptop
+      currentSpeed.current = 0;
+      isRunning.current = false;
+      const deskSeatPos = new THREE.Vector3(1.85, 0.0, 3.4);
       playerPos.current.copy(deskSeatPos);
       physics.setPosition(deskSeatPos.x, deskSeatPos.y, deskSeatPos.z);
 
       if (groupRef.current) {
         groupRef.current.position.copy(deskSeatPos);
-        // Facing negative Z towards the laptop
-        currentRotation.current = lerpAngle(currentRotation.current, Math.PI, Math.min(1, 6 * dt));
+        // Facing positive X directly towards the laptop monitor & desk
+        currentRotation.current = lerpAngle(currentRotation.current, Math.PI / 2, Math.min(1, 6 * dt));
         groupRef.current.rotation.y = currentRotation.current;
       }
     } else if (presentScenePhase === 'FINAL_CINEMATIC') {
@@ -303,6 +398,16 @@ export function PlayerController() {
         currentRotation.current = lerpAngle(currentRotation.current, 0.2, Math.min(1, 6 * dt));
         groupRef.current.rotation.y = currentRotation.current;
       }
+    } else {
+      physics.resetVelocity();
+      if (
+        gameStateStore.playerMotion.state !== 'CINEMATIC_WALK' &&
+        gameStateStore.playerMotion.state !== 'PRAY'
+      ) {
+        currentSpeed.current = 0;
+        isRunning.current = false;
+        gameStateStore.setPlayerMotion(0, 'IDLE');
+      }
     }
 
     // Update animation refs for PlayerModel
@@ -318,6 +423,11 @@ export function PlayerController() {
   const isDeskWork =
     presentScenePhase === 'GAME_DEVELOPMENT_READY' || presentScenePhase === 'GAME_DEVELOPMENT';
 
+  const speakerName = activeDialogue?.lines[dialogueIndex]?.speaker?.toLowerCase();
+  const isSpeaking =
+    (gameState === 'DIALOGUE' || presentScenePhase === 'INITIAL_DIALOGUE') &&
+    (speakerName === 'child' || speakerName === 'vinay');
+
   return (
     <>
       <group ref={groupRef} position={[playerPos.current.x, playerPos.current.y, playerPos.current.z]}>
@@ -326,6 +436,10 @@ export function PlayerController() {
           isRunning={animRunningRef.current}
           isSitting={animSittingRef.current}
           isWorking={isDeskWork}
+          isTalking={isSpeaking}
+          isPraying={gameStateStore.playerMotion.isPraying}
+          isCarrying={gameStateStore.playerMotion.isCarrying}
+          isInteracting={gameStateStore.playerMotion.isInteracting}
         />
       </group>
       <ThirdPersonCamera targetPosition={playerPos.current} targetRotation={currentRotation.current} />

@@ -34,12 +34,14 @@ export const ASSET_CONFIG = {
   staging: {
     // Deliberate standing positions in the living room
     oldManStanding: [-0.3, 0.0, 3.7] as [number, number, number],
-    childSpawn: [0.6, 0.0, 5.2] as [number, number, number],
-    // Scripted sofa sitting markers — Y=0.0 because the sit animation handles the height offset
-    oldManSittingMarker: [-0.4, 0.0, 2.6] as [number, number, number],
-    childSittingMarker: [0.15, 0.0, 2.6] as [number, number, number],
-    // Proximity trigger radius for opening conversation
-    interactionRadius: 3.2,
+    childSpawn: [0.6, 0.0, 6.4] as [number, number, number],
+    // Scripted sofa sitting markers:
+    // Left cushion (Dada): X = -0.44, Y = 0.08, Z = 2.96 (moved in front and down onto cushion per user request)
+    // Right cushion (Vinay): X = 0.16, Y = 0.36, Z = 2.78 (child kept unchanged)
+    oldManSittingMarker: [-0.44, 0.08, 2.96] as [number, number, number],
+    childSittingMarker: [0.16, 0.36, 2.78] as [number, number, number],
+    // Proximity trigger radius for opening conversation (natural conversational distance ~2.5m)
+    interactionRadius: 2.5,
   },
   environments: {
     home: {

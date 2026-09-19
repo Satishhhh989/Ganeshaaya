@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { useGameState } from '../../core/GameState';
 
 export function ModernRoomDecor() {
-  const { isAdultProtagonist, gameDevState } = useGameState();
+  const { isAdultProtagonist, gameDevState, presentScenePhase, timePassageStage = 0 } = useGameState();
   const laptopScreenRef = useRef<THREE.MeshStandardMaterial>(null);
   const screenLightRef = useRef<THREE.PointLight>(null);
   const fairyLightsRef = useRef<THREE.Group>(null);
@@ -12,19 +12,19 @@ export function ModernRoomDecor() {
   const devScreenColor = useMemo(() => {
     switch (gameDevState) {
       case 'GAME_PROJECT_STARTED':
-        return new THREE.Color('#0077b6');
+        return new THREE.Color('#d97706'); // warm amber
       case 'GAME_CONCEPT_CREATED':
-        return new THREE.Color('#e07a5f');
+        return new THREE.Color('#f59e0b'); // soft saffron
       case 'GAME_PROTOTYPE_CREATED':
-        return new THREE.Color('#00b4d8');
+        return new THREE.Color('#10b981'); // emerald vitality
       case 'GAME_PROTOTYPE_PLAYABLE':
-        return new THREE.Color('#2a9d8f');
+        return new THREE.Color('#fbbf24'); // golden illumination
       case 'GAME_POLISHED':
-        return new THREE.Color('#ffb703');
+        return new THREE.Color('#ffd700'); // pure warm gold
       case 'GAME_SUBMITTED':
-        return new THREE.Color('#7209b7');
+        return new THREE.Color('#ffd700'); // celebration gold
       default:
-        return new THREE.Color('#00b4d8');
+        return new THREE.Color('#e0a96d'); // warm clay/brass
     }
   }, [gameDevState]);
 
@@ -51,11 +51,22 @@ export function ModernRoomDecor() {
     }
   });
 
-  if (!isAdultProtagonist) return null;
+  // Progressive environmental storytelling flags
+  const showDevDesk =
+    isAdultProtagonist || (presentScenePhase === 'TIME_PASSAGE' && timePassageStage >= 2);
+  const showPhotoAndGanesha =
+    isAdultProtagonist || (presentScenePhase === 'TIME_PASSAGE' && timePassageStage >= 1);
+  const showCalendar =
+    isAdultProtagonist || (presentScenePhase === 'TIME_PASSAGE' && timePassageStage >= 3);
+  const showFairyLights =
+    isAdultProtagonist ||
+    (presentScenePhase === 'TIME_PASSAGE' && timePassageStage >= 2) ||
+    presentScenePhase === 'ANNUAL_FESTIVAL_MONTAGE';
 
   return (
     <group name="ModernRoomDecor">
       {/* ─── MODERN DEVELOPER DESK SETUP ─── */}
+      {showDevDesk && (
       <group position={[2.4, 0, 3.4]} rotation={[0, -Math.PI / 2, 0]}>
         {/* Desk Surface (Teak Wood) */}
         <mesh position={[0, 0.72, 0]} castShadow receiveShadow>
@@ -125,20 +136,27 @@ export function ModernRoomDecor() {
           <pointLight position={[0.08, 0.34, 0.06]} color="#ffddaa" intensity={1.8} distance={2.2} castShadow />
         </group>
 
-        {/* Game Development Notebook & Competition Notes */}
-        <mesh position={[0.38, 0.745, 0.06]} rotation={[0, -0.12, 0]}>
-          <boxGeometry args={[0.22, 0.015, 0.28]} />
-          <meshStandardMaterial color="#f0ede6" roughness={0.8} />
-        </mesh>
-        <mesh position={[0.38, 0.754, 0.06]} rotation={[0, -0.12, 0]}>
-          <boxGeometry args={[0.20, 0.002, 0.26]} />
-          <meshStandardMaterial color="#335c67" roughness={0.9} />
-        </mesh>
-        {/* Pen on notebook */}
-        <mesh position={[0.32, 0.76, 0.08]} rotation={[0, 0.5, 0]}>
-          <cylinderGeometry args={[0.004, 0.004, 0.14, 8]} />
-          <meshStandardMaterial color="#e76f51" />
-        </mesh>
+        {/* Game Development Notebook, Pandal Blueprint & NIAT Award */}
+        <group position={[0.38, 0.745, 0.06]} rotation={[0, -0.12, 0]}>
+          <mesh castShadow receiveShadow>
+            <boxGeometry args={[0.26, 0.016, 0.34]} />
+            <meshStandardMaterial color="#f5f0e6" roughness={0.8} />
+          </mesh>
+          <mesh position={[0, 0.009, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[0.24, 0.32]} />
+            <meshStandardMaterial color="#e8dfd1" roughness={0.9} />
+          </mesh>
+          {/* Golden NIAT Grant Seal */}
+          <mesh position={[0.07, 0.01, 0.09]} rotation={[-Math.PI / 2, 0, 0]}>
+            <circleGeometry args={[0.024, 16]} />
+            <meshStandardMaterial color="#d4af37" metalness={0.85} roughness={0.2} />
+          </mesh>
+          {/* Pen on notebook */}
+          <mesh position={[-0.08, 0.012, 0.02]} rotation={[0, 0.5, 0]}>
+            <cylinderGeometry args={[0.004, 0.004, 0.14, 8]} />
+            <meshStandardMaterial color="#e76f51" />
+          </mesh>
+        </group>
 
         {/* Ergonomic Office Chair */}
         <group position={[0, 0, 0.55]} rotation={[0, Math.PI, 0]}>
@@ -156,89 +174,98 @@ export function ModernRoomDecor() {
           </mesh>
         </group>
       </group>
+      )}
 
       {/* ─── NOSTALGIC FRAMED PHOTO OF DADA & CHILD VINAY ─── */}
-      <group position={[2.4, 0.74, 2.75]} rotation={[0, -Math.PI / 2 + 0.35, 0]}>
-        {/* Ornate Gold Picture Frame */}
-        <mesh castShadow>
-          <boxGeometry args={[0.18, 0.24, 0.015]} />
-          <meshStandardMaterial color="#c99e32" metalness={0.75} roughness={0.3} />
-        </mesh>
-        {/* Photograph insert (warm golden nostalgic tone) */}
-        <mesh position={[0, 0, 0.009]}>
-          <planeGeometry args={[0.14, 0.20]} />
-          <meshStandardMaterial color="#fdf0d5" roughness={0.9} emissive="#ffb703" emissiveIntensity={0.2} />
-        </mesh>
-        {/* Mini Marigold Garland around frame */}
-        <mesh position={[0, -0.09, 0.012]} rotation={[0, 0, Math.PI / 2]}>
-          <torusGeometry args={[0.07, 0.012, 6, 12]} />
-          <meshStandardMaterial color="#f77f00" roughness={0.6} />
-        </mesh>
-      </group>
+      {showPhotoAndGanesha && (
+        <group position={[2.4, 0.74, 2.75]} rotation={[0, -Math.PI / 2 + 0.35, 0]}>
+          {/* Ornate Gold Picture Frame */}
+          <mesh castShadow>
+            <boxGeometry args={[0.18, 0.24, 0.015]} />
+            <meshStandardMaterial color="#c99e32" metalness={0.75} roughness={0.3} />
+          </mesh>
+          {/* Photograph insert (warm golden nostalgic tone) */}
+          <mesh position={[0, 0, 0.009]}>
+            <planeGeometry args={[0.14, 0.20]} />
+            <meshStandardMaterial color="#fdf0d5" roughness={0.9} emissive="#ffb703" emissiveIntensity={0.2} />
+          </mesh>
+          {/* Mini Marigold Garland around frame */}
+          <mesh position={[0, -0.09, 0.012]} rotation={[0, 0, Math.PI / 2]}>
+            <torusGeometry args={[0.07, 0.012, 6, 12]} />
+            <meshStandardMaterial color="#f77f00" roughness={0.6} />
+          </mesh>
+        </group>
+      )}
 
       {/* ─── MODERN BRASS MINI GANESHA IDOL STAND ─── */}
-      <group position={[-0.27, 0.62, 5.75]}>
-        {/* Teak Pedestal */}
-        <mesh castShadow receiveShadow>
-          <cylinderGeometry args={[0.12, 0.14, 0.04, 16]} />
-          <meshStandardMaterial color="#582f0e" roughness={0.5} />
-        </mesh>
-        {/* Brass Ganesha Idol silhouette */}
-        <mesh position={[0, 0.1, 0]} castShadow>
-          <cylinderGeometry args={[0.04, 0.07, 0.14, 12]} />
-          <meshStandardMaterial color="#e0a96d" metalness={0.8} roughness={0.25} />
-        </mesh>
-        <mesh position={[0, 0.18, 0]}>
-          <sphereGeometry args={[0.048, 12, 10]} />
-          <meshStandardMaterial color="#e0a96d" metalness={0.8} roughness={0.25} />
-        </mesh>
-        {/* Trunk curve */}
-        <mesh position={[0, 0.15, 0.04]} rotation={[0.5, 0, 0]}>
-          <cylinderGeometry args={[0.015, 0.02, 0.06, 8]} />
-          <meshStandardMaterial color="#e0a96d" metalness={0.8} roughness={0.25} />
-        </mesh>
-        {/* Fresh marigold flower petals around base */}
-        <mesh position={[0, 0.025, 0]}>
-          <ringGeometry args={[0.08, 0.13, 16]} />
-          <meshStandardMaterial color="#fcbf49" roughness={0.7} side={THREE.DoubleSide} />
-        </mesh>
-      </group>
+      {showPhotoAndGanesha && (
+        <group position={[-0.27, 0.62, 5.75]}>
+          {/* Teak Pedestal */}
+          <mesh castShadow receiveShadow>
+            <cylinderGeometry args={[0.12, 0.14, 0.04, 16]} />
+            <meshStandardMaterial color="#582f0e" roughness={0.5} />
+          </mesh>
+          {/* Brass Ganesha Idol silhouette */}
+          <mesh position={[0, 0.1, 0]} castShadow>
+            <cylinderGeometry args={[0.04, 0.07, 0.14, 12]} />
+            <meshStandardMaterial color="#e0a96d" metalness={0.8} roughness={0.25} />
+          </mesh>
+          <mesh position={[0, 0.18, 0]}>
+            <sphereGeometry args={[0.048, 12, 10]} />
+            <meshStandardMaterial color="#e0a96d" metalness={0.8} roughness={0.25} />
+          </mesh>
+          {/* Trunk curve */}
+          <mesh position={[0, 0.15, 0.04]} rotation={[0.5, 0, 0]}>
+            <cylinderGeometry args={[0.015, 0.02, 0.06, 8]} />
+            <meshStandardMaterial color="#e0a96d" metalness={0.8} roughness={0.25} />
+          </mesh>
+          {/* Fresh marigold flower petals around base */}
+          <mesh position={[0, 0.025, 0]}>
+            <ringGeometry args={[0.08, 0.13, 16]} />
+            <meshStandardMaterial color="#fcbf49" roughness={0.7} side={THREE.DoubleSide} />
+          </mesh>
+        </group>
+      )}
 
       {/* ─── MODERN 2024 WALL CALENDAR ─── */}
-      <group position={[2.5, 2.1, 4.4]} rotation={[0, -Math.PI / 2, 0]}>
-        {/* Calendar Board */}
-        <mesh castShadow>
-          <boxGeometry args={[0.38, 0.52, 0.01]} />
-          <meshStandardMaterial color="#ffffff" roughness={0.7} />
-        </mesh>
-        {/* Header (Red/Saffron festival banner) */}
-        <mesh position={[0, 0.18, 0.006]}>
-          <planeGeometry args={[0.36, 0.12]} />
-          <meshStandardMaterial color="#d62828" roughness={0.5} />
-        </mesh>
-        {/* Ganesh Chaturthi Date marker */}
-        <mesh position={[0, -0.05, 0.006]}>
-          <planeGeometry args={[0.34, 0.3]} />
-          <meshStandardMaterial color="#faf0ca" roughness={0.8} />
-        </mesh>
-      </group>
+      {showCalendar && (
+        <group position={[2.5, 2.1, 4.4]} rotation={[0, -Math.PI / 2, 0]}>
+          {/* Calendar Board */}
+          <mesh castShadow>
+            <boxGeometry args={[0.38, 0.52, 0.01]} />
+            <meshStandardMaterial color="#ffffff" roughness={0.7} />
+          </mesh>
+          {/* Header (Red/Saffron festival banner) */}
+          <mesh position={[0, 0.18, 0.006]}>
+            <planeGeometry args={[0.36, 0.12]} />
+            <meshStandardMaterial color="#d62828" roughness={0.5} />
+          </mesh>
+          {/* Ganesh Chaturthi Date marker */}
+          <mesh position={[0, -0.05, 0.006]}>
+            <planeGeometry args={[0.34, 0.3]} />
+            <meshStandardMaterial color="#faf0ca" roughness={0.8} />
+          </mesh>
+        </group>
+      )}
 
       {/* ─── FESTIVE FAIRY LIGHTS STRING ─── */}
-      <group ref={fairyLightsRef} position={[0, 2.7, 3.8]}>
-        {[-1.8, -1.3, -0.8, -0.3, 0.2, 0.7, 1.2, 1.7, 2.2].map((x, idx) => (
-          <mesh
-            key={idx}
-            position={[x, Math.sin(x * 1.5) * 0.12 - 0.05, Math.cos(x * 1.2) * 0.08]}
-          >
-            <sphereGeometry args={[0.022, 8, 8]} />
-            <meshBasicMaterial
-              color={idx % 2 === 0 ? '#ffb703' : '#ffd166'}
-              transparent
-              opacity={0.9}
-            />
-          </mesh>
-        ))}
-      </group>
+      {showFairyLights && (
+        <group ref={fairyLightsRef} position={[0, 2.7, 3.8]}>
+          {[-1.8, -1.3, -0.8, -0.3, 0.2, 0.7, 1.2, 1.7, 2.2].map((x, idx) => (
+            <mesh
+              key={idx}
+              position={[x, Math.sin(x * 1.5) * 0.12 - 0.05, Math.cos(x * 1.2) * 0.08]}
+            >
+              <sphereGeometry args={[0.022, 8, 8]} />
+              <meshBasicMaterial
+                color={idx % 2 === 0 ? '#ffb703' : '#ffd166'}
+                transparent
+                opacity={0.9}
+              />
+            </mesh>
+          ))}
+        </group>
+      )}
     </group>
   );
 }

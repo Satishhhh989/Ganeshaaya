@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { useGameState } from '../core/GameState';
+import { useGameState, gameStateStore } from '../core/GameState';
 import { ASSET_CONFIG } from '../core/assetConfig';
 
 interface ThirdPersonCameraProps {
@@ -11,7 +11,7 @@ interface ThirdPersonCameraProps {
 
 export function ThirdPersonCamera({ targetPosition }: ThirdPersonCameraProps) {
   const { camera, gl } = useThree();
-  const { gameState, presentScenePhase } = useGameState();
+  const { gameState, presentScenePhase, activeDialogue, dialogueIndex, timePassageStage } = useGameState();
 
   // Initial yaw: looking from behind the child towards Dada
   const initialYaw = Math.atan2(
@@ -48,6 +48,7 @@ export function ThirdPersonCamera({ targetPosition }: ThirdPersonCameraProps) {
   }, [targetPosition]);
 
   const finalCinematicTimer = useRef<number>(0);
+  const devSequenceTimer = useRef<number>(0);
 
   // Mouse / Pointer Lock
   useEffect(() => {
@@ -61,6 +62,20 @@ export function ThirdPersonCamera({ targetPosition }: ThirdPersonCameraProps) {
           presentScenePhase === 'GANESH_CHATURTHI_CELEBRATION');
 
       if (!isFreeLook) return;
+
+      // Do NOT engage pointer lock or hijack cursor when clicking on HTML UI buttons or prompts
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'BUTTON' ||
+          target.closest('button') ||
+          target.closest('[data-ui]') ||
+          target.closest('[data-interactive="true"]') ||
+          target.getAttribute?.('data-ui'))
+      ) {
+        return;
+      }
+
       if (e.button === 0 || e.button === 2) {
         if (!isPointerLocked.current && document.pointerLockElement !== canvas) {
           try {
@@ -78,6 +93,22 @@ export function ThirdPersonCamera({ targetPosition }: ThirdPersonCameraProps) {
     const handlePointerLockChange = () => {
       isPointerLocked.current = document.pointerLockElement === canvas;
     };
+
+    // ESC key cleanly releases pointer lock
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Escape') {
+        if (document.pointerLockElement) {
+          document.exitPointerLock?.();
+        }
+      }
+    };
+
+    // Auto release pointer lock if entering dialogue or cinematic
+    if (gameState !== 'PLAYING' || presentScenePhase === 'INITIAL_DIALOGUE') {
+      if (document.pointerLockElement) {
+        document.exitPointerLock?.();
+      }
+    }
 
     const handleMouseMove = (e: MouseEvent) => {
       const isFreeLook =
@@ -109,12 +140,14 @@ export function ThirdPersonCamera({ targetPosition }: ThirdPersonCameraProps) {
     };
 
     window.addEventListener('mousedown', handlePointerDown);
+    window.addEventListener('keydown', handleKeyDown);
     document.addEventListener('pointerlockchange', handlePointerLockChange);
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('wheel', handleWheel, { passive: true });
 
     return () => {
       window.removeEventListener('mousedown', handlePointerDown);
+      window.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('pointerlockchange', handlePointerLockChange);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('wheel', handleWheel);
@@ -150,13 +183,26 @@ export function ThirdPersonCamera({ targetPosition }: ThirdPersonCameraProps) {
       return;
     }
 
-    // ─── DIALOGUE camera: Two-shot framing both characters ───
-    if (presentScenePhase === 'INITIAL_DIALOGUE') {
-      const dialogueCamPos = new THREE.Vector3(1.8, 1.3, 4.4);
-      const dialogueLookAt = new THREE.Vector3(0.0, 1.0, 4.0);
+    // ─── DIALOGUE camera: Dynamic cinematic two-shot with speaker emphasis ───
+    if (presentScenePhase === 'INITIAL_DIALOGUE' || (gameState === 'DIALOGUE' && presentScenePhase === 'APPROACH')) {
+      const currentSpeaker = activeDialogue?.lines[dialogueIndex]?.speaker?.toLowerCase();
+      const isVinaySpeaking = currentSpeaker === 'child' || currentSpeaker === 'vinay';
 
-      currentCamPos.current.lerp(dialogueCamPos, 3.0 * dt);
-      currentLookAt.current.lerp(dialogueLookAt, 3.5 * dt);
+      let dialogueCamPos: THREE.Vector3;
+      let dialogueLookAt: THREE.Vector3;
+
+      if (isVinaySpeaking) {
+        // Subtle framing with emphasis on Vinay asking his question (both characters remain in two-shot)
+        dialogueCamPos = new THREE.Vector3(1.68, 1.25, 4.55);
+        dialogueLookAt = new THREE.Vector3(0.08, 0.98, 4.08);
+      } else {
+        // Subtle framing with emphasis on Dada sharing wisdom (both characters remain in two-shot)
+        dialogueCamPos = new THREE.Vector3(1.88, 1.34, 4.35);
+        dialogueLookAt = new THREE.Vector3(-0.12, 1.05, 3.92);
+      }
+
+      currentCamPos.current.lerp(dialogueCamPos, 2.4 * dt);
+      currentLookAt.current.lerp(dialogueLookAt, 2.8 * dt);
 
       camera.position.copy(currentCamPos.current);
       camera.lookAt(currentLookAt.current);
@@ -178,8 +224,8 @@ export function ThirdPersonCamera({ targetPosition }: ThirdPersonCameraProps) {
 
     // ─── CHILD WALKING TO SOFA camera ───
     if (presentScenePhase === 'CHILD_WALKING_SOFA' || presentScenePhase === 'CHILD_SITTING') {
-      const childTrackPos = new THREE.Vector3(1.5, 1.35, 4.8);
-      const childTrackLookAt = new THREE.Vector3(-0.1, 0.85, 2.8);
+      const childTrackPos = new THREE.Vector3(1.5, 1.45, 4.8);
+      const childTrackLookAt = new THREE.Vector3(-0.1, 1.05, 2.78);
 
       currentCamPos.current.lerp(childTrackPos, 2.5 * dt);
       currentLookAt.current.lerp(childTrackLookAt, 3.0 * dt);
@@ -189,13 +235,26 @@ export function ThirdPersonCamera({ targetPosition }: ThirdPersonCameraProps) {
       return;
     }
 
-    // ─── STORY MODE camera: Warm two-shot of both seated ───
+    // ─── STORY MODE camera: Warm two-shot of both seated on sofa with subtle speaker emphasis ───
     if (presentScenePhase === 'STORY_MODE') {
-      const storyCamPos = new THREE.Vector3(-0.1, 1.3, 5.0);
-      const storyLookAt = new THREE.Vector3(-0.15, 0.9, 2.75);
+      const currentSpeaker = activeDialogue?.lines[dialogueIndex]?.speaker?.toLowerCase();
+      const isVinaySpeaking = currentSpeaker === 'child' || currentSpeaker === 'vinay';
 
-      currentCamPos.current.lerp(storyCamPos, 2.2 * dt);
-      currentLookAt.current.lerp(storyLookAt, 2.8 * dt);
+      let storyCamPos: THREE.Vector3;
+      let storyLookAt: THREE.Vector3;
+
+      if (isVinaySpeaking) {
+        // Slight shift towards Vinay on the right of the sofa
+        storyCamPos = new THREE.Vector3(-0.04, 1.35, 4.75);
+        storyLookAt = new THREE.Vector3(0.04, 1.05, 2.78);
+      } else {
+        // Slight shift towards Dada on the left of the sofa
+        storyCamPos = new THREE.Vector3(-0.18, 1.25, 4.85);
+        storyLookAt = new THREE.Vector3(-0.24, 0.88, 2.96);
+      }
+
+      currentCamPos.current.lerp(storyCamPos, 2.0 * dt);
+      currentLookAt.current.lerp(storyLookAt, 2.5 * dt);
 
       camera.position.copy(currentCamPos.current);
       camera.lookAt(currentLookAt.current);
@@ -204,8 +263,8 @@ export function ThirdPersonCamera({ targetPosition }: ThirdPersonCameraProps) {
 
     // ─── TRANSITION TO MYTHOLOGY camera: Slow emotional push-in towards Dada ───
     if (presentScenePhase === 'TRANSITION_TO_MYTHOLOGY') {
-      const transCamPos = new THREE.Vector3(0.3, 1.15, 3.5);
-      const transLookAt = new THREE.Vector3(-0.25, 0.95, 2.85);
+      const transCamPos = new THREE.Vector3(0.25, 1.22, 3.65);
+      const transLookAt = new THREE.Vector3(-0.25, 0.92, 2.96);
 
       currentCamPos.current.lerp(transCamPos, 1.4 * dt);
       currentLookAt.current.lerp(transLookAt, 1.8 * dt);
@@ -215,17 +274,152 @@ export function ThirdPersonCamera({ targetPosition }: ThirdPersonCameraProps) {
       return;
     }
 
-    // ─── GAME DEVELOPMENT WORKSPACE camera: Intimate over-the-shoulder workstation view ───
-    if (presentScenePhase === 'GAME_DEVELOPMENT_READY' || presentScenePhase === 'GAME_DEVELOPMENT') {
-      const devCamPos = new THREE.Vector3(1.68, 1.25, 4.45);
-      const devLookAt = new THREE.Vector3(2.38, 0.95, 3.42);
+    // ─── TIME PASSAGE & GROWING UP SEQUENCE: Dynamic cinematic room path ───
+    if (presentScenePhase === 'TIME_PASSAGE') {
+      const stage = timePassageStage ?? 0;
+      const time = state.clock.getElapsedTime();
+      const driftY = Math.sin(time * 0.4) * 0.02;
+      const driftX = Math.cos(time * 0.3) * 0.025;
 
-      currentCamPos.current.lerp(devCamPos, 2.8 * dt);
-      currentLookAt.current.lerp(devLookAt, 3.2 * dt);
+      let targetCamPos: THREE.Vector3;
+      let targetLookAt: THREE.Vector3;
+
+      if (stage === 0) {
+        // Stage 0: Childhood - Intimate two-shot near sofa where child Vinay & Dada sat
+        targetCamPos = new THREE.Vector3(0.52 + driftX, 1.28 + driftY, 4.65);
+        targetLookAt = new THREE.Vector3(-0.12, 0.92, 2.85);
+      } else if (stage === 1) {
+        // Stage 1: School Years - Camera slowly pulls back and glides upwards/across room
+        targetCamPos = new THREE.Vector3(1.35 + driftX, 1.58 + driftY, 5.15);
+        targetLookAt = new THREE.Vector3(0.45, 1.05, 3.2);
+      } else if (stage === 2) {
+        // Stage 2: College Years - Glides toward study window, framing warm desk lamp & framed photo
+        targetCamPos = new THREE.Vector3(1.65 + driftX, 1.45 + driftY, 4.6);
+        targetLookAt = new THREE.Vector3(2.25, 1.05, 3.4);
+      } else {
+        // Stage 3: Young Adult - Returns smoothly to center, panning up to Adult Vinay
+        targetCamPos = new THREE.Vector3(0.38 + driftX, 1.38 + driftY, 4.8);
+        targetLookAt = new THREE.Vector3(0.0, 1.25, 3.0);
+      }
+
+      currentCamPos.current.lerp(targetCamPos, 1.8 * dt);
+      currentLookAt.current.lerp(targetLookAt, 2.2 * dt);
 
       camera.position.copy(currentCamPos.current);
       camera.lookAt(currentLookAt.current);
       return;
+    }
+
+    // ─── ADULT PROTAGONIST REVEAL: Settle on Adult Vinay standing tall in room ───
+    if (presentScenePhase === 'ADULT_PROTAGONIST') {
+      const time = state.clock.getElapsedTime();
+      const adultCamPos = new THREE.Vector3(
+        0.38 + Math.cos(time * 0.3) * 0.02,
+        1.38 + Math.sin(time * 0.35) * 0.015,
+        4.8
+      );
+      const adultLookAt = new THREE.Vector3(0.0, 1.25, 3.0);
+
+      currentCamPos.current.lerp(adultCamPos, 2.2 * dt);
+      currentLookAt.current.lerp(adultLookAt, 2.6 * dt);
+
+      camera.position.copy(currentCamPos.current);
+      camera.lookAt(currentLookAt.current);
+      return;
+    }
+
+    // ─── ANNUAL FESTIVAL MONTAGE: Gentle sweeping pan across the festive living room ───
+    if (presentScenePhase === 'ANNUAL_FESTIVAL_MONTAGE') {
+      const time = state.clock.getElapsedTime();
+      const panX = Math.sin(time * 0.28) * 0.45;
+      const panY = Math.cos(time * 0.32) * 0.06;
+      const montageCamPos = new THREE.Vector3(-0.35 + panX, 1.52 + panY, 4.85);
+      const montageLookAt = new THREE.Vector3(0.15, 1.15, 2.9);
+
+      currentCamPos.current.lerp(montageCamPos, 1.6 * dt);
+      currentLookAt.current.lerp(montageLookAt, 2.0 * dt);
+
+      camera.position.copy(currentCamPos.current);
+      camera.lookAt(currentLookAt.current);
+      return;
+    }
+
+    // ─── CURRENT YEAR 2024: Calm daytime shot of Adult Vinay looking toward calendar ───
+    if (presentScenePhase === 'CURRENT_YEAR') {
+      const yearCamPos = new THREE.Vector3(0.85, 1.45, 4.85);
+      const yearLookAt = new THREE.Vector3(1.35, 1.35, 3.6);
+
+      currentCamPos.current.lerp(yearCamPos, 2.2 * dt);
+      currentLookAt.current.lerp(yearLookAt, 2.6 * dt);
+
+      camera.position.copy(currentCamPos.current);
+      camera.lookAt(currentLookAt.current);
+      return;
+    }
+
+    // ─── FINANCIAL PROBLEM: Over-the-shoulder medium shot of Vinay looking at desk notebook ───
+    if (presentScenePhase === 'FINANCIAL_PROBLEM') {
+      const problemCamPos = new THREE.Vector3(1.05, 1.45, 4.25);
+      const problemLookAt = new THREE.Vector3(2.05, 1.05, 3.4);
+
+      currentCamPos.current.lerp(problemCamPos, 2.4 * dt);
+      currentLookAt.current.lerp(problemLookAt, 2.8 * dt);
+
+      camera.position.copy(currentCamPos.current);
+      camera.lookAt(currentLookAt.current);
+      return;
+    }
+
+    // ─── COMPETITION DISCOVERY: Intimate push-in toward the glowing laptop desk ───
+    if (presentScenePhase === 'COMPETITION_DISCOVERY') {
+      const compCamPos = new THREE.Vector3(1.25, 1.35, 3.82);
+      const compLookAt = new THREE.Vector3(2.35, 0.96, 3.4);
+
+      currentCamPos.current.lerp(compCamPos, 2.5 * dt);
+      currentLookAt.current.lerp(compLookAt, 3.0 * dt);
+
+      camera.position.copy(currentCamPos.current);
+      camera.lookAt(currentLookAt.current);
+      return;
+    }
+
+    // ─── GAME DEVELOPMENT WORKSPACE camera: Establishing shot then push-in ───
+    if (presentScenePhase === 'GAME_DEVELOPMENT_READY' || presentScenePhase === 'GAME_DEVELOPMENT') {
+      devSequenceTimer.current += dt;
+      const t = devSequenceTimer.current;
+
+      const devCamPos = new THREE.Vector3();
+      const devLookAt = new THREE.Vector3();
+
+      if (t < 2.8) {
+        // Establishing wide: Vinay seated in chair at his desk, room, lamp, personal details
+        devCamPos.set(0.92, 1.48, 4.35);
+        devLookAt.set(2.05, 1.05, 3.4);
+        currentCamPos.current.lerp(devCamPos, 2.2 * dt);
+        currentLookAt.current.lerp(devLookAt, 2.6 * dt);
+      } else {
+        // Smooth push-in over right shoulder toward laptop monitor
+        const pushT = Math.min(1, (t - 2.8) / 3.0);
+        const ease = pushT * pushT * (3 - 2 * pushT);
+        devCamPos.lerpVectors(
+          new THREE.Vector3(0.92, 1.48, 4.35),
+          new THREE.Vector3(1.28, 1.26, 3.75),
+          ease
+        );
+        devLookAt.lerpVectors(
+          new THREE.Vector3(2.05, 1.05, 3.4),
+          new THREE.Vector3(2.35, 0.95, 3.4),
+          ease
+        );
+        currentCamPos.current.lerp(devCamPos, 3.2 * dt);
+        currentLookAt.current.lerp(devLookAt, 3.4 * dt);
+      }
+
+      camera.position.copy(currentCamPos.current);
+      camera.lookAt(currentLookAt.current);
+      return;
+    } else {
+      devSequenceTimer.current = 0;
     }
 
     // ─── PANDAL REVEAL camera: Majestic cinematic wide view of completed pandal ───
@@ -239,6 +433,59 @@ export function ThirdPersonCamera({ targetPosition }: ThirdPersonCameraProps) {
       camera.position.copy(currentCamPos.current);
       camera.lookAt(currentLookAt.current);
       return;
+    }
+
+    // ─── FESTIVAL PREPARATION: Ganesh Chaturthi Morning & Auspicious Arrival Choreography ───
+    if (presentScenePhase === 'FESTIVAL_PREPARATION') {
+      const step = gameStateStore.getState().festivalArrivalStep;
+
+      if (step === 0) {
+        // Sunrise Reveal: Smooth crane up revealing finished pandal in warm morning light
+        const sunriseCamPos = new THREE.Vector3(0, 1.9, 5.5);
+        const sunriseLookAt = new THREE.Vector3(0, 1.4, -1.8);
+        currentCamPos.current.lerp(sunriseCamPos, 2.0 * dt);
+        currentLookAt.current.lerp(sunriseLookAt, 2.4 * dt);
+        camera.position.copy(currentCamPos.current);
+        camera.lookAt(currentLookAt.current);
+        return;
+      } else if (step === 1) {
+        // Hear Procession / Colony Entrance Reveal: Camera swings toward colony street entrance
+        const entranceCamPos = new THREE.Vector3(1.2, 1.75, 4.0);
+        const entranceLookAt = new THREE.Vector3(0, 1.2, 10.5);
+        currentCamPos.current.lerp(entranceCamPos, 2.5 * dt);
+        currentLookAt.current.lerp(entranceLookAt, 2.8 * dt);
+        camera.position.copy(currentCamPos.current);
+        camera.lookAt(currentLookAt.current);
+        return;
+      } else if (step === 3) {
+        // Procession March: Dynamic traveling side tracking shot alongside Vinay & palanquin
+        const marchCamPos = new THREE.Vector3(targetPosition.x + 2.4, targetPosition.y + 1.6, targetPosition.z + 1.8);
+        const marchLookAt = new THREE.Vector3(targetPosition.x, targetPosition.y + 1.1, targetPosition.z - 0.6);
+        currentCamPos.current.lerp(marchCamPos, 3.2 * dt);
+        currentLookAt.current.lerp(marchLookAt, 3.4 * dt);
+        camera.position.copy(currentCamPos.current);
+        camera.lookAt(currentLookAt.current);
+        return;
+      } else if (step === 4) {
+        // Singhasan Placement: Close-up elevation on altar singhasan
+        const altarCamPos = new THREE.Vector3(0.7, 1.6, 0.4);
+        const altarLookAt = new THREE.Vector3(0, 1.4, -1.3);
+        currentCamPos.current.lerp(altarCamPos, 2.8 * dt);
+        currentLookAt.current.lerp(altarLookAt, 3.0 * dt);
+        camera.position.copy(currentCamPos.current);
+        camera.lookAt(currentLookAt.current);
+        return;
+      } else if (step === 5 && gameStateStore.playerMotion.isPraying) {
+        // Namaste Prayer: Intimate reverent shot framing Vinay and Bappa
+        const prayCamPos = new THREE.Vector3(0.4, 1.35, 1.2);
+        const prayLookAt = new THREE.Vector3(0, 1.3, -1.1);
+        currentCamPos.current.lerp(prayCamPos, 2.6 * dt);
+        currentLookAt.current.lerp(prayLookAt, 2.8 * dt);
+        camera.position.copy(currentCamPos.current);
+        camera.lookAt(currentLookAt.current);
+        return;
+      }
+      // When walking to procession (step 2 or 5 free roam), standard third person camera follows player
     }
 
     // ─── FINAL CINEMATIC: Majestic 5-phase camera choreography ───

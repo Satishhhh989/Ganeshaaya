@@ -1,50 +1,292 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import type { ShivaStoryPhase } from '../../core/types';
 import { STORY_ASSETS } from '../../story/storyAssets';
+import { StoryParticles } from '../../story/StoryParticles';
 import { audioManager } from '../../audio/AudioManager';
 
-interface RestorationCinematicProps {
+export interface RestorationCinematicProps {
   phase: ShivaStoryPhase;
   onAdvance: (nextPhase: ShivaStoryPhase) => void;
   onReturnHome: () => void;
-  onReplaySearch: () => void;
+  onReplaySearch?: () => void;
 }
+
+/**
+ * Story beat narration content
+ */
+interface StoryBeatData {
+  chapter: string;
+  lines: string[];
+  particleType: 'golden_prana' | 'lotus_drift';
+}
+
+const CINEMATIC_BEATS: Record<string, StoryBeatData> = {
+  DIVINE_TRANSITION: {
+    chapter: 'KAILASH',
+    lines: ['With the noble creature’s blessing, Shiva returned to the sacred threshold of Kailash.'],
+    particleType: 'golden_prana',
+  },
+  DIVINE_RESTORATION: {
+    chapter: 'KAILASH',
+    lines: ['Cosmic prana flowed through the sacred form, binding breath and spirit as one.'],
+    particleType: 'golden_prana',
+  },
+  GANESHA_DIVINE_AWAKENING: {
+    chapter: 'THE AWAKENING',
+    lines: [
+      'And Ganesha breathed once more.',
+      'With wise, gentle eyes, the eternal child opened his gaze to the morning sun.',
+    ],
+    particleType: 'golden_prana',
+  },
+  FAMILY_REUNION: {
+    chapter: 'THE REUNION',
+    lines: [
+      'Parvati held her beloved son once again.',
+      'Her sorrow dissolved into divine, boundless bliss as the holy family stood united.',
+    ],
+    particleType: 'lotus_drift',
+  },
+  DIVINE_BLESSING: {
+    chapter: 'PRATHAMA PUJYA',
+    lines: [
+      'Mahadev proclaimed: “Before every venture and prayer, thou shalt be worshipped first.”',
+      '“The eternal remover of all obstacles — Sri Vighnaharta.”',
+    ],
+    particleType: 'lotus_drift',
+  },
+  RETURN_TO_PRESENT_READY: {
+    chapter: 'KAILASH',
+    lines: ['And so, the sacred legend echoed across time into our hearts.'],
+    particleType: 'golden_prana',
+  },
+};
 
 export function RestorationCinematic({
   phase,
   onAdvance,
   onReturnHome,
-  onReplaySearch,
 }: RestorationCinematicProps) {
-  const [glowPulse, setGlowPulse] = useState(false);
+  // Only render during restoration cinematic phases
+  const activeCinematicPhases = useMemo(
+    () => [
+      'DIVINE_TRANSITION',
+      'DIVINE_RESTORATION',
+      'GANESHA_DIVINE_AWAKENING',
+      'FAMILY_REUNION',
+      'DIVINE_BLESSING',
+      'RETURN_TO_PRESENT_READY',
+    ],
+    []
+  );
 
+  const isCinematicActive = activeCinematicPhases.includes(phase);
+
+  // Sub-beat indexing for multi-line cinematic pacing
+  const [subBeatIndex, setSubBeatIndex] = useState(0);
+
+  // Parallax & smooth drift coordinates
+  const mousePos = useRef({ x: 0, y: 0 });
+  const currentParallax = useRef({ x: 0, y: 0 });
+  const [renderOffset, setRenderOffset] = useState({ x: 0, y: 0 });
+
+  // Camera progression state (0 to 1) for smooth cinematic push-in
+  const [cameraProgress, setCameraProgress] = useState(0);
+
+  // Awakening divine light flash & glow
+  const [awakeningFlash, setAwakeningFlash] = useState(false);
+  const [isAwakenedLit, setIsAwakenedLit] = useState(false);
+
+  // Dissolve transition flag
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Subtitle reveal animation key
+  const [textAnimKey, setTextAnimKey] = useState(0);
+
+  // Reset sub-beat index when phase changes
   useEffect(() => {
-    if (phase === 'DIVINE_TRANSITION') {
-      audioManager.playDivineAwakeningPulse();
-    } else if (phase === 'DIVINE_RESTORATION') {
-      audioManager.playTransitionSwell();
-      setGlowPulse(true);
-    } else if (phase === 'GANESHA_DIVINE_AWAKENING') {
-      audioManager.playTempleBell();
-    }
+    setSubBeatIndex(0);
+    setCameraProgress(0);
+    setTextAnimKey((prev) => prev + 1);
   }, [phase]);
 
-  // Only render during Phase 4 cinematic stages
-  const activeCinematicPhases = [
-    'DIVINE_TRANSITION',
-    'DIVINE_RESTORATION',
-    'GANESHA_DIVINE_AWAKENING',
-    'FAMILY_REUNION',
-    'DIVINE_BLESSING',
-    'RETURN_TO_PRESENT_READY',
-  ];
+  // Audio orchestration & cinematic soundscape
+  useEffect(() => {
+    if (!isCinematicActive) return;
 
-  if (!activeCinematicPhases.includes(phase)) {
+    if (phase === 'DIVINE_TRANSITION') {
+      audioManager.fadeAmbientVolume(0.35, 1.5);
+      audioManager.playTransitionSwell();
+    } else if (phase === 'DIVINE_RESTORATION') {
+      audioManager.playTransitionSwell();
+    } else if (phase === 'GANESHA_DIVINE_AWAKENING') {
+      // Awakening sequence: soft silence -> breath -> golden pulse -> temple bell -> peaceful resolution
+      audioManager.fadeAmbientVolume(0.12, 0.8);
+      audioManager.playElephantBreath();
+
+      const timer1 = setTimeout(() => {
+        setAwakeningFlash(true);
+        setIsAwakenedLit(true);
+        audioManager.playDivineAwakeningPulse();
+      }, 1100);
+
+      const timer2 = setTimeout(() => {
+        setAwakeningFlash(false);
+        audioManager.playTempleBell();
+        audioManager.fadeAmbientVolume(0.38, 2.5);
+      }, 2300);
+
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+      };
+    } else if (phase === 'FAMILY_REUNION') {
+      audioManager.playTempleBell();
+    } else if (phase === 'DIVINE_BLESSING') {
+      audioManager.playDivineAwakeningPulse();
+    }
+  }, [phase, isCinematicActive]);
+
+  // Mouse tracking for subtle 2.5D parallax depth
+  useEffect(() => {
+    if (!isCinematicActive) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const normX = (e.clientX / window.innerWidth) * 2 - 1;
+      const normY = (e.clientY / window.innerHeight) * 2 - 1;
+      mousePos.current = { x: normX, y: normY };
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [isCinematicActive]);
+
+  // Parallax animation & natural breathing drift loop
+  useEffect(() => {
+    if (!isCinematicActive) return;
+
+    let animId: number;
+    const startTime = performance.now();
+
+    const updateLoop = (now: number) => {
+      const elapsed = (now - startTime) / 1000;
+
+      // Restrained, heavy cinematic lerp factor
+      const lerpFactor = 0.032;
+      currentParallax.current.x += (mousePos.current.x - currentParallax.current.x) * lerpFactor;
+      currentParallax.current.y += (mousePos.current.y - currentParallax.current.y) * lerpFactor;
+
+      // Autonomous gentle ambient drift (breathing atmosphere even without mouse interaction)
+      const driftX = Math.sin(elapsed * 0.45) * 5.0;
+      const driftY = Math.cos(elapsed * 0.35) * 3.5;
+
+      setRenderOffset({
+        x: currentParallax.current.x * 20 + driftX,
+        y: currentParallax.current.y * 14 + driftY,
+      });
+
+      // Smooth camera progression over 14 seconds
+      const cam = Math.min(1, elapsed / 14);
+      setCameraProgress(cam);
+
+      animId = requestAnimationFrame(updateLoop);
+    };
+
+    animId = requestAnimationFrame(updateLoop);
+    return () => cancelAnimationFrame(animId);
+  }, [isCinematicActive, phase]);
+
+  // Advance narration or move to next phase
+  const handleAdvance = useCallback(() => {
+    if (isTransitioning) return;
+
+    const beatData = CINEMATIC_BEATS[phase];
+    if (!beatData) return;
+
+    audioManager.playUIClick();
+
+    if (subBeatIndex < beatData.lines.length - 1) {
+      // Advance to next subtitle line in current phase
+      setSubBeatIndex((prev) => prev + 1);
+      setTextAnimKey((prev) => prev + 1);
+    } else {
+      // Advance to next story phase
+      setIsTransitioning(true);
+
+      setTimeout(() => {
+        setIsTransitioning(false);
+
+        if (phase === 'DIVINE_TRANSITION') {
+          onAdvance('DIVINE_RESTORATION');
+        } else if (phase === 'DIVINE_RESTORATION') {
+          onAdvance('GANESHA_DIVINE_AWAKENING');
+        } else if (phase === 'GANESHA_DIVINE_AWAKENING') {
+          onAdvance('FAMILY_REUNION');
+        } else if (phase === 'FAMILY_REUNION') {
+          onAdvance('DIVINE_BLESSING');
+        } else if (phase === 'DIVINE_BLESSING') {
+          onAdvance('RETURN_TO_PRESENT_READY');
+        } else if (phase === 'RETURN_TO_PRESENT_READY') {
+          onReturnHome();
+        }
+      }, 550);
+    }
+  }, [phase, subBeatIndex, isTransitioning, onAdvance, onReturnHome]);
+
+  // Keyboard navigation listener: Space, Enter, or KeyE to continue; Escape to skip
+  useEffect(() => {
+    if (!isCinematicActive) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.code === 'Space' ||
+        e.code === 'Enter' ||
+        e.code === 'KeyE' ||
+        e.key === 'e' ||
+        e.key === 'E'
+      ) {
+        e.preventDefault();
+        handleAdvance();
+      } else if (e.code === 'Escape') {
+        e.preventDefault();
+        onReturnHome();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isCinematicActive, handleAdvance, onReturnHome]);
+
+  if (!isCinematicActive) {
     return null;
+  }
+
+  const currentBeat = CINEMATIC_BEATS[phase] || CINEMATIC_BEATS.DIVINE_TRANSITION;
+  const currentLine = currentBeat.lines[subBeatIndex] || currentBeat.lines[0];
+
+  // Camera zoom & pan calculations per phase
+  let cameraScale = 1.02 + cameraProgress * 0.05;
+  let cameraOrigin = '50% 50%';
+  let cameraPanY = 0;
+
+  if (phase === 'GANESHA_DIVINE_AWAKENING') {
+    // Focused push toward Ganesha's face
+    cameraScale = 1.02 + cameraProgress * 0.08;
+    cameraOrigin = '50% 34%';
+    cameraPanY = -cameraProgress * 1.8;
+  } else if (phase === 'FAMILY_REUNION') {
+    // Gentle drift across the sacred family
+    cameraScale = 1.03 + cameraProgress * 0.04;
+    cameraOrigin = '50% 40%';
+  } else if (phase === 'DIVINE_BLESSING') {
+    // Majestic slow pull-back to reveal full Kailash glory
+    cameraScale = 1.07 - cameraProgress * 0.04;
+    cameraOrigin = '50% 45%';
   }
 
   return (
     <div
+      onClick={handleAdvance}
       style={{
         position: 'absolute',
         inset: 0,
@@ -52,19 +294,245 @@ export function RestorationCinematic({
         overflow: 'hidden',
         pointerEvents: 'auto',
         userSelect: 'none',
+        backgroundColor: '#070406',
+        cursor: 'pointer',
       }}
     >
-      {/* ─── Cinematic Letterbox Widescreen Bars (2.39:1) ─── */}
+      {/* ─── FULL-SCREEN LIVING ARTWORK CANVAS (2.5D PARALLAX & SMOOTH CAMERA) ─── */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: '-6%',
+          width: '112%',
+          height: '112%',
+          transformOrigin: cameraOrigin,
+          transform: `scale(${cameraScale}) translateY(${cameraPanY}%)`,
+          transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+        }}
+      >
+        {/* ═══════════════════════════════════════════════════════════════
+            STAGE 1 & 2: DIVINE_TRANSITION & DIVINE_RESTORATION
+            ═══════════════════════════════════════════════════════════════ */}
+        {(phase === 'DIVINE_TRANSITION' || phase === 'DIVINE_RESTORATION') && (
+          <>
+            {/* Background Layer: Mount Kailash Abode */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundImage: `url("${STORY_ASSETS.backgrounds.kailashAbode.url}")`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center 40%',
+                transform: `translate(${renderOffset.x * 0.25}px, ${renderOffset.y * 0.2}px)`,
+                filter: phase === 'DIVINE_RESTORATION' ? 'brightness(0.82)' : 'brightness(0.92)',
+                transition: 'transform 0.2s ease-out, filter 1s ease',
+              }}
+            />
+
+            {/* Radiant Golden Prana Layer */}
+            {phase === 'DIVINE_RESTORATION' && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: '-10%',
+                  width: '120%',
+                  height: '120%',
+                  backgroundImage: `url("${STORY_ASSETS.effects.divineGoldenAura.url}")`,
+                  backgroundSize: 'contain',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                  mixBlendMode: 'screen',
+                  opacity: 0.65,
+                  transform: `translate(${renderOffset.x * 0.45}px, ${renderOffset.y * 0.35}px)`,
+                  animation: 'auraBreathe 4s ease-in-out infinite alternate',
+                }}
+              />
+            )}
+
+            {/* Sacred Resting Form at Threshold */}
+            {phase === 'DIVINE_RESTORATION' && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transform: `translate(${renderOffset.x * 0.6}px, ${renderOffset.y * 0.48}px)`,
+                  pointerEvents: 'none',
+                }}
+              >
+                <img
+                  src={STORY_ASSETS.characters.ganeshaGuarding.url}
+                  alt="Child Form at Kailash Threshold"
+                  style={{
+                    maxWidth: '48%',
+                    maxHeight: '48%',
+                    objectFit: 'contain',
+                    filter:
+                      'drop-shadow(0 0 45px rgba(254, 240, 138, 0.75)) drop-shadow(0 0 90px rgba(234, 179, 8, 0.45)) brightness(1.15)',
+                    animation: 'restingFloat 4.5s ease-in-out infinite alternate',
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Drifting Lotus Petals Foreground */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundImage: `url("${STORY_ASSETS.props.lotusPetalsForeground.url}")`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                mixBlendMode: 'screen',
+                opacity: 0.6,
+                transform: `translate(${renderOffset.x * 0.9}px, ${renderOffset.y * 0.75}px)`,
+                pointerEvents: 'none',
+              }}
+            />
+          </>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════
+            STAGE 3: GANESHA_DIVINE_AWAKENING (Emotional Centerpiece)
+            ═══════════════════════════════════════════════════════════════ */}
+        {phase === 'GANESHA_DIVINE_AWAKENING' && (
+          <>
+            {/* Primary Full-Bleed Artwork: Lord Ganesha Awakened */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundImage: `url("${STORY_ASSETS.characters.ganeshaAwakened.url}")`,
+                backgroundSize: 'cover',
+                backgroundPosition: '50% 32%',
+                transform: `translate(${renderOffset.x * 0.3}px, ${renderOffset.y * 0.25}px)`,
+                filter: isAwakenedLit
+                  ? 'brightness(1.05) contrast(1.03)'
+                  : 'brightness(0.92) contrast(1.0)',
+                transition: 'filter 1.8s ease-out, transform 0.25s ease-out',
+              }}
+            />
+
+            {/* Warm Golden Sunlight Stream from Upper Right */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background:
+                  'radial-gradient(ellipse at 78% 22%, rgba(254, 240, 138, 0.32) 0%, rgba(251, 191, 36, 0.16) 38%, transparent 72%)',
+                mixBlendMode: 'screen',
+                pointerEvents: 'none',
+                transform: `translate(${renderOffset.x * 0.45}px, ${renderOffset.y * 0.35}px)`,
+              }}
+            />
+
+            {/* Drifting Petals Foreground */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundImage: `url("${STORY_ASSETS.props.lotusPetalsForeground.url}")`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                mixBlendMode: 'screen',
+                opacity: 0.52,
+                transform: `translate(${renderOffset.x * 0.85}px, ${renderOffset.y * 0.7}px)`,
+                pointerEvents: 'none',
+              }}
+            />
+          </>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════
+            STAGE 4 & 5: FAMILY_REUNION, DIVINE_BLESSING & RETURN READY
+            ═══════════════════════════════════════════════════════════════ */}
+        {(phase === 'FAMILY_REUNION' ||
+          phase === 'DIVINE_BLESSING' ||
+          phase === 'RETURN_TO_PRESENT_READY') && (
+          <>
+            {/* Primary Full-Bleed Artwork: Shiva, Parvati & Ganesha Reunion */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundImage: `url("${STORY_ASSETS.characters.shivaParvatiReunion.url}")`,
+                backgroundSize: 'cover',
+                backgroundPosition: '50% 36%',
+                transform: `translate(${renderOffset.x * 0.3}px, ${renderOffset.y * 0.24}px)`,
+                filter:
+                  phase === 'DIVINE_BLESSING'
+                    ? 'brightness(1.08) contrast(1.04)'
+                    : 'brightness(0.96) contrast(1.02)',
+                transition: 'filter 1.5s ease-out, transform 0.25s ease-out',
+              }}
+            />
+
+            {/* Celestial Golden Light for Blessing */}
+            {phase === 'DIVINE_BLESSING' && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background:
+                    'radial-gradient(circle at 50% 35%, rgba(254, 240, 138, 0.28) 0%, rgba(245, 158, 11, 0.12) 50%, transparent 80%)',
+                  mixBlendMode: 'screen',
+                  pointerEvents: 'none',
+                  animation: 'auraBreathe 5s ease-in-out infinite alternate',
+                }}
+              />
+            )}
+
+            {/* Drifting Petals Foreground */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundImage: `url("${STORY_ASSETS.props.lotusPetalsForeground.url}")`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                mixBlendMode: 'screen',
+                opacity: 0.58,
+                transform: `translate(${renderOffset.x * 0.85}px, ${renderOffset.y * 0.72}px)`,
+                pointerEvents: 'none',
+              }}
+            />
+          </>
+        )}
+      </div>
+
+      {/* ─── PROCEDURAL ATMOSPHERIC PARTICLES ─── */}
+      <StoryParticles type={currentBeat.particleType} />
+
+      {/* ─── SOFT DIVINE AWAKENING FLASH (NON-BLINDING GOLDEN SHIMMER) ─── */}
+      {awakeningFlash && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundColor: '#fef9c3',
+            mixBlendMode: 'screen',
+            opacity: 0.85,
+            pointerEvents: 'none',
+            animation: 'flashBloom 1.2s ease-out forwards',
+            zIndex: 94,
+          }}
+        />
+      )}
+
+      {/* ─── CINEMATIC WIDESCREEN LETTERBOX BARS (2.39:1 FILM RATIO) ─── */}
       <div
         style={{
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
-          height: '7.5vh',
-          backgroundColor: '#050302',
+          height: '6.5vh',
+          backgroundColor: '#050304',
           zIndex: 96,
-          boxShadow: '0 4px 24px rgba(0,0,0,0.9)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.85)',
+          pointerEvents: 'none',
         }}
       />
       <div
@@ -73,736 +541,220 @@ export function RestorationCinematic({
           bottom: 0,
           left: 0,
           right: 0,
-          height: '7.5vh',
-          backgroundColor: '#050302',
+          height: '6.5vh',
+          backgroundColor: '#050304',
           zIndex: 96,
-          boxShadow: '0 -4px 24px rgba(0,0,0,0.9)',
+          boxShadow: '0 -4px 20px rgba(0,0,0,0.85)',
+          pointerEvents: 'none',
         }}
       />
 
-      {/* ═══════════════════════════════════════════════════════════════
-          STAGE 1: DIVINE_TRANSITION (Communing with Sacred Elephant)
-          ═══════════════════════════════════════════════════════════════ */}
-      {phase === 'DIVINE_TRANSITION' && (
-        <div
+      {/* ─── UNOBTRUSIVE TOP CORNER CONTROLS ─── */}
+      {/* Chapter Indicator (Tiny & Tasteful) */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 'clamp(14px, 2.5vh, 22px)',
+          left: 'clamp(20px, 3.5vw, 44px)',
+          zIndex: 97,
+          fontFamily: "'Cinzel', 'Marcellus', serif",
+          fontSize: '11px',
+          fontWeight: 700,
+          letterSpacing: '0.35em',
+          color: 'rgba(254, 240, 138, 0.72)',
+          textTransform: 'uppercase',
+          textShadow: '0 2px 8px rgba(0, 0, 0, 0.95)',
+          pointerEvents: 'none',
+        }}
+      >
+        {currentBeat.chapter}
+      </div>
+
+      {/* Discreet Skip Control */}
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+          onReturnHome();
+        }}
+        style={{
+          position: 'absolute',
+          top: 'clamp(14px, 2.5vh, 22px)',
+          right: 'clamp(20px, 3.5vw, 44px)',
+          zIndex: 97,
+          fontFamily: "'Cinzel', 'Marcellus', serif",
+          fontSize: '12px',
+          letterSpacing: '0.22em',
+          color: 'rgba(250, 245, 235, 0.48)',
+          textTransform: 'uppercase',
+          cursor: 'pointer',
+          padding: '4px 8px',
+          transition: 'color 0.2s ease, transform 0.2s ease',
+          textShadow: '0 2px 8px rgba(0, 0, 0, 0.95)',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = '#fef08a';
+          e.currentTarget.style.transform = 'translateX(2px)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = 'rgba(250, 245, 235, 0.48)';
+          e.currentTarget.style.transform = 'translateX(0)';
+        }}
+      >
+        Skip →
+      </div>
+
+      {/* ─── FULL-WIDTH LOWER ATMOSPHERIC GRADIENT WASH (NO BOX / NO CONTAINER) ─── */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '38vh',
+          background:
+            'linear-gradient(to top, rgba(7, 4, 6, 0.94) 0%, rgba(18, 10, 16, 0.62) 48%, rgba(7, 4, 6, 0.15) 80%, transparent 100%)',
+          pointerEvents: 'none',
+          zIndex: 93,
+        }}
+      />
+
+      {/* ─── FLOATING CINEMATIC SUBTITLE NARRATION (NO BOX / DIRECT OVER ART) ─── */}
+      <div
+        key={textAnimKey}
+        style={{
+          position: 'absolute',
+          bottom: 'clamp(44px, 8.5vh, 80px)',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '90%',
+          maxWidth: '860px',
+          textAlign: 'center',
+          zIndex: 95,
+          pointerEvents: 'none',
+          animation: 'fadeInUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        }}
+      >
+        <p
           style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            paddingBottom: '12vh',
-            background:
-              'radial-gradient(circle at 50% 60%, rgba(254, 240, 138, 0.15) 0%, rgba(10, 20, 15, 0.6) 70%, rgba(5, 10, 8, 0.9) 100%)',
-            animation: 'fadeIn 1.2s ease-out',
+            margin: 0,
+            padding: 0,
+            fontFamily: "'Cinzel', 'Marcellus', 'Georgia', serif",
+            fontSize: 'clamp(1.22rem, 1.85vw, 1.58rem)',
+            lineHeight: 1.62,
+            letterSpacing: '0.025em',
+            color: '#fcf8f0',
+            fontWeight: 500,
+            textShadow:
+              '0 2px 14px rgba(0, 0, 0, 0.98), 0 0 28px rgba(0, 0, 0, 0.9), 0 1px 4px rgba(254, 240, 138, 0.25)',
           }}
         >
-          <div
-            style={{
-              maxWidth: '780px',
-              textAlign: 'center',
-              backgroundColor: 'rgba(8, 14, 10, 0.88)',
-              border: '1px solid rgba(253, 224, 71, 0.5)',
-              borderRadius: '20px',
-              padding: '24px 36px',
-              boxShadow: '0 16px 40px rgba(0,0,0,0.8), 0 0 25px rgba(253, 224, 71, 0.25)',
-              backdropFilter: 'blur(16px)',
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "'Marcellus', serif",
-                color: '#fef08a',
-                fontSize: '13px',
-                letterSpacing: '0.22em',
-                textTransform: 'uppercase',
-                marginBottom: '8px',
-              }}
-            >
-              The Sacred Offering • दिव्य समर्पण
-            </div>
-            <p
-              style={{
-                fontFamily: "'Outfit', sans-serif",
-                fontSize: '1.22rem',
-                lineHeight: 1.65,
-                color: '#f8fafc',
-                margin: '0 0 20px 0',
-              }}
-            >
-              In the sacred stillness of the cedar grove, the celestial Gajaraj peacefully bows its head, willingly offering its noble spirit so the devoted child may be reborn.
-            </p>
-            <button
-              onClick={() => {
-                audioManager.playUIClick();
-                onAdvance('DIVINE_RESTORATION');
-              }}
-              style={{
-                backgroundColor: 'rgba(253, 224, 71, 0.25)',
-                border: '1px solid #fef08a',
-                borderRadius: '24px',
-                color: '#ffffff',
-                fontFamily: "'Marcellus', serif",
-                fontSize: '15px',
-                letterSpacing: '0.08em',
-                padding: '10px 28px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-            >
-              Bestow the Sacred Head ➔
-            </button>
-          </div>
-        </div>
-      )}
+          {currentLine}
+        </p>
+      </div>
 
-      {/* ═══════════════════════════════════════════════════════════════
-          STAGE 2: DIVINE_RESTORATION (Layered 2.5D Transformation)
-          ═══════════════════════════════════════════════════════════════ */}
-      {phase === 'DIVINE_RESTORATION' && (
-        <div
+      {/* ─── SUBTLE DISCREET CONTINUE PROMPT (NEVER LOOKS LIKE A BUTTON) ─── */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 'clamp(14px, 2.8vh, 26px)',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 97,
+          pointerEvents: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          animation: 'subtlePromptPulse 3.2s ease-in-out infinite alternate',
+        }}
+      >
+        <span
           style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundColor: '#080504',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'hidden',
+            padding: '2px 7px',
+            backgroundColor: 'rgba(255, 255, 255, 0.14)',
+            border: '1px solid rgba(255, 255, 255, 0.28)',
+            borderRadius: '3px',
+            color: '#ffffff',
+            fontFamily: "'Outfit', sans-serif",
+            fontSize: '10px',
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            textShadow: '0 1px 4px rgba(0, 0, 0, 0.8)',
           }}
         >
-          {/* Layer 1: Background Abode */}
-          <img
-            src={STORY_ASSETS.backgrounds.kailashAbode.url}
-            alt="Kailash Abode"
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              opacity: 0.45,
-              filter: 'brightness(0.7) blur(2px)',
-            }}
-          />
-
-          {/* Layer 2: Golden Prana Radiant Burst */}
-          <img
-            src={STORY_ASSETS.effects.divineGoldenAura.url}
-            alt="Divine Prana"
-            style={{
-              position: 'absolute',
-              width: '110vmax',
-              height: '110vmax',
-              objectFit: 'contain',
-              mixBlendMode: 'screen',
-              opacity: glowPulse ? 0.85 : 0.4,
-              animation: 'spinAura 20s linear infinite, breathe 3s ease-in-out infinite alternate',
-            }}
-          />
-
-          {/* Layer 3: Central Symbolic Restoration Vessel */}
-          <div
-            style={{
-              position: 'relative',
-              width: 'min(580px, 85vw)',
-              height: 'min(580px, 60vh)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 3,
-            }}
-          >
-            {/* Sacred Lotus Blossom base */}
-            <div
-              style={{
-                position: 'absolute',
-                width: '320px',
-                height: '320px',
-                borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(245, 176, 65, 0.5) 0%, transparent 70%)',
-                animation: 'pulseGlow 2s ease-in-out infinite alternate',
-              }}
-            />
-
-            {/* Guarding Ganesha form bathed in celestial light */}
-            <img
-              src={STORY_ASSETS.characters.ganeshaGuarding.url}
-              alt="Child Ganesha Restoring"
-              style={{
-                maxWidth: '65%',
-                maxHeight: '65%',
-                objectFit: 'contain',
-                filter: 'drop-shadow(0 0 35px rgba(255, 215, 0, 0.8)) brightness(1.2)',
-                animation: 'levitate 3s ease-in-out infinite alternate',
-              }}
-            />
-          </div>
-
-          {/* Layer 4: Drifting Sacred Lotus Petals */}
-          <img
-            src={STORY_ASSETS.props.lotusPetalsForeground.url}
-            alt="Lotus Petals"
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              mixBlendMode: 'screen',
-              opacity: 0.65,
-              pointerEvents: 'none',
-              zIndex: 4,
-            }}
-          />
-
-          {/* Bottom Subtitle & Action */}
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '10vh',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              maxWidth: '740px',
-              textAlign: 'center',
-              backgroundColor: 'rgba(12, 9, 6, 0.88)',
-              border: '1px solid rgba(245, 176, 65, 0.5)',
-              borderRadius: '20px',
-              padding: '20px 32px',
-              zIndex: 5,
-              backdropFilter: 'blur(16px)',
-            }}
-          >
-            <p
-              style={{
-                fontFamily: "'Outfit', sans-serif",
-                fontSize: '1.2rem',
-                lineHeight: 1.6,
-                color: '#ffffff',
-                margin: '0 0 16px 0',
-              }}
-            >
-              Mahadev gently places the noble elephant head upon the boy’s shoulders. Sacred Prana currents surge as cosmic power binds life back to form.
-            </p>
-            <button
-              onClick={() => {
-                audioManager.playUIClick();
-                onAdvance('GANESHA_DIVINE_AWAKENING');
-              }}
-              style={{
-                backgroundColor: 'rgba(245, 176, 65, 0.3)',
-                border: '1px solid #ffd700',
-                borderRadius: '24px',
-                color: '#ffffff',
-                fontFamily: "'Marcellus', serif",
-                fontSize: '15px',
-                letterSpacing: '0.08em',
-                padding: '10px 30px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-            >
-              Awaken Sri Ganesha ➔
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════
-          STAGE 3: GANESHA_DIVINE_AWAKENING (Awakened Lotus Masterpiece)
-          ═══════════════════════════════════════════════════════════════ */}
-      {phase === 'GANESHA_DIVINE_AWAKENING' && (
-        <div
+          SPACE
+        </span>
+        <span
           style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundColor: '#0a0806',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'hidden',
+            fontFamily: "'Cinzel', 'Marcellus', serif",
+            fontSize: '11px',
+            fontWeight: 700,
+            letterSpacing: '0.24em',
+            color: 'rgba(254, 240, 138, 0.82)',
+            textTransform: 'uppercase',
+            textShadow: '0 1px 6px rgba(0, 0, 0, 0.95)',
           }}
         >
-          <img
-            src={STORY_ASSETS.characters.ganeshaAwakened.url}
-            alt="Ganesha Awakened"
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              animation: 'zoomSlow 8s ease-out forwards',
-            }}
-          />
+          CONTINUE
+        </span>
+      </div>
 
-          {/* Radiant Gold Vignette */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background:
-                'radial-gradient(circle at 50% 50%, transparent 40%, rgba(10, 8, 6, 0.75) 100%)',
-              pointerEvents: 'none',
-            }}
-          />
-
-          {/* Subtitle & Advance */}
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '10vh',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              maxWidth: '760px',
-              textAlign: 'center',
-              backgroundColor: 'rgba(15, 12, 8, 0.9)',
-              border: '1px solid rgba(254, 240, 138, 0.6)',
-              borderRadius: '24px',
-              padding: '24px 36px',
-              zIndex: 10,
-              backdropFilter: 'blur(16px)',
-              boxShadow: '0 16px 40px rgba(0,0,0,0.85), 0 0 30px rgba(254, 240, 138, 0.25)',
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "'Marcellus', serif",
-                color: '#fde047',
-                fontSize: '13px',
-                letterSpacing: '0.22em',
-                textTransform: 'uppercase',
-                marginBottom: '8px',
-              }}
-            >
-              The Divine Awakening • पुनर्जीवन
-            </div>
-            <p
-              style={{
-                fontFamily: "'Outfit', sans-serif",
-                fontSize: '1.24rem',
-                lineHeight: 1.6,
-                color: '#ffffff',
-                margin: '0 0 20px 0',
-              }}
-            >
-              With wise, gentle eyes and an innocent radiant smile, Lord Ganesha breathes again upon the blooming lotus. Divine peace and celestial melodies fill Mount Kailash!
-            </p>
-            <button
-              onClick={() => {
-                audioManager.playUIClick();
-                onAdvance('FAMILY_REUNION');
-              }}
-              style={{
-                backgroundColor: 'rgba(250, 204, 21, 0.3)',
-                border: '1px solid #fef08a',
-                borderRadius: '24px',
-                color: '#ffffff',
-                fontFamily: "'Marcellus', serif",
-                fontSize: '15px',
-                letterSpacing: '0.08em',
-                padding: '10px 30px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-            >
-              Reunite with Mata Parvati ➔
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════
-          STAGE 4: FAMILY_REUNION (Shiva, Parvati, Ganesha Together)
-          ═══════════════════════════════════════════════════════════════ */}
-      {phase === 'FAMILY_REUNION' && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundColor: '#0a0705',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'hidden',
-          }}
-        >
-          <img
-            src={STORY_ASSETS.characters.shivaParvatiReunion.url}
-            alt="Shiva Parvati Ganesha Reunion"
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              animation: 'zoomSlow 10s ease-out forwards',
-            }}
-          />
-
-          {/* Subtitle & Advance */}
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '10vh',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              maxWidth: '780px',
-              textAlign: 'center',
-              backgroundColor: 'rgba(14, 9, 6, 0.92)',
-              border: '1px solid rgba(245, 176, 65, 0.6)',
-              borderRadius: '24px',
-              padding: '24px 38px',
-              zIndex: 10,
-              backdropFilter: 'blur(16px)',
-              boxShadow: '0 16px 40px rgba(0,0,0,0.9), 0 0 30px rgba(245, 176, 65, 0.25)',
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "'Marcellus', serif",
-                color: '#f5b041',
-                fontSize: '13px',
-                letterSpacing: '0.22em',
-                textTransform: 'uppercase',
-                marginBottom: '8px',
-              }}
-            >
-              The Divine Reunion • शिव-पार्वती-गणेश मिलन
-            </div>
-            <p
-              style={{
-                fontFamily: "'Outfit', sans-serif",
-                fontSize: '1.24rem',
-                lineHeight: 1.6,
-                color: '#ffffff',
-                margin: '0 0 20px 0',
-              }}
-            >
-              Mata Parvati rushes to her son, her sorrow melting into boundless joy as she tenderly embraces Ganesha. Mahadev smiles with cosmic grace as the celestial family is united in eternal bliss.
-            </p>
-            <button
-              onClick={() => {
-                audioManager.playUIClick();
-                onAdvance('DIVINE_BLESSING');
-              }}
-              style={{
-                backgroundColor: 'rgba(245, 176, 65, 0.3)',
-                border: '1px solid #ffd700',
-                borderRadius: '24px',
-                color: '#ffffff',
-                fontFamily: "'Marcellus', serif",
-                fontSize: '15px',
-                letterSpacing: '0.08em',
-                padding: '10px 32px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-            >
-              Receive the Supreme Blessing ➔
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════
-          STAGE 5: DIVINE_BLESSING (Prathama Pujya Declaration)
-          ═══════════════════════════════════════════════════════════════ */}
-      {phase === 'DIVINE_BLESSING' && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundColor: '#0a0705',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'hidden',
-          }}
-        >
-          <img
-            src={STORY_ASSETS.characters.shivaParvatiReunion.url}
-            alt="Shiva Parvati Ganesha Blessing"
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              filter: 'brightness(0.85)',
-            }}
-          />
-
-          {/* Golden Divine Blessing Overlay */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background:
-                'radial-gradient(circle at 50% 50%, rgba(245, 176, 65, 0.2) 0%, rgba(10, 8, 6, 0.8) 100%)',
-              pointerEvents: 'none',
-            }}
-          />
-
-          {/* Blessing Card */}
-          <div
-            style={{
-              position: 'relative',
-              maxWidth: '780px',
-              textAlign: 'center',
-              backgroundColor: 'rgba(15, 10, 7, 0.94)',
-              border: '1.5px solid rgba(255, 215, 0, 0.7)',
-              borderRadius: '24px',
-              padding: '36px 44px',
-              zIndex: 10,
-              backdropFilter: 'blur(20px)',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.95), 0 0 40px rgba(245, 176, 65, 0.3)',
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "'Marcellus', serif",
-                color: '#fde047',
-                fontSize: '14px',
-                letterSpacing: '0.24em',
-                textTransform: 'uppercase',
-                marginBottom: '10px',
-              }}
-            >
-              The Supreme Declaration • प्रथम पूज्य वरदान
-            </div>
-
-            <h2
-              style={{
-                fontFamily: "'Marcellus', serif",
-                fontSize: '2.1rem',
-                color: '#ffffff',
-                margin: '0 0 16px 0',
-                letterSpacing: '0.06em',
-                textShadow: '0 0 18px rgba(250, 204, 21, 0.5)',
-              }}
-            >
-              “You Shall Be Prathama Pujya”
-            </h2>
-
-            <p
-              style={{
-                fontFamily: "'Outfit', sans-serif",
-                fontSize: '1.22rem',
-                lineHeight: 1.7,
-                color: '#f1f5f9',
-                margin: '0 0 24px 0',
-              }}
-            >
-              Mahadev proclaims before all celestial realms: <br />
-              <strong style={{ color: '#fef08a' }}>
-                “Before any prayer, any journey, or any endeavor begins, you shall be invoked first of all. You are Vighnaharta — the eternal remover of obstacles.”
-              </strong>
-            </p>
-
-            <button
-              onClick={() => {
-                audioManager.playUIClick();
-                onAdvance('RETURN_TO_PRESENT_READY');
-              }}
-              style={{
-                backgroundColor: 'rgba(250, 204, 21, 0.35)',
-                border: '1.5px solid #ffd700',
-                borderRadius: '26px',
-                color: '#ffffff',
-                fontFamily: "'Marcellus', serif",
-                fontSize: '15px',
-                letterSpacing: '0.08em',
-                padding: '12px 34px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-            >
-              Conclude the Sacred Tale ➔
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════
-          STAGE 6: RETURN_TO_PRESENT_READY (Phase 4 Completion Milestone)
-          ═══════════════════════════════════════════════════════════════ */}
-      {phase === 'RETURN_TO_PRESENT_READY' && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundColor: 'rgba(8, 5, 4, 0.92)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 99,
-            color: '#faf4e8',
-            padding: '24px',
-            textAlign: 'center',
-            backdropFilter: 'blur(16px)',
-            animation: 'fadeIn 1s ease-out',
-          }}
-        >
-          <div
-            style={{
-              position: 'relative',
-              maxWidth: '740px',
-              backgroundColor: 'rgba(16, 11, 8, 0.95)',
-              border: '1.5px solid rgba(245, 176, 65, 0.7)',
-              borderRadius: '24px',
-              padding: '44px 48px',
-              boxShadow: '0 24px 70px rgba(0, 0, 0, 0.95), 0 0 35px rgba(245, 176, 65, 0.25)',
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "'Marcellus', serif",
-                color: '#f5b041',
-                fontSize: '13px',
-                letterSpacing: '0.22em',
-                textTransform: 'uppercase',
-                marginBottom: '10px',
-              }}
-            >
-              Phase 4 Milestone Reached
-            </div>
-
-            <h2
-              style={{
-                fontFamily: "'Marcellus', serif",
-                fontSize: '2.4rem',
-                color: '#ffffff',
-                margin: '0 0 16px 0',
-                letterSpacing: '0.06em',
-                textShadow: '0 2px 14px rgba(245, 176, 65, 0.5)',
-              }}
-            >
-              The Legend of Vinayaka
-            </h2>
-
-            <p
-              style={{
-                fontFamily: "'Outfit', sans-serif",
-                fontSize: '1.18rem',
-                lineHeight: 1.7,
-                color: '#e4d8c8',
-                margin: '0 0 28px 0',
-              }}
-            >
-              The camera softly pulls away as the echoes of Dada’s narration return to the living room:
-              <br />
-              <em style={{ color: '#fef08a' }}>
-                “And that, my child, is how Lord Ganesha was blessed as the First Deity of all prayers. In every home and community, we celebrate His arrival with boundless joy.”
-              </em>
-              <br />
-              <br />
-              <span style={{ color: '#93c5fd', fontStyle: 'italic', display: 'block' }}>
-                System State Reached: <strong>RETURN_TO_PRESENT_READY</strong>.
-              </span>
-              <span style={{ color: '#cbd5e1', fontSize: '0.98rem' }}>
-                Ready to transition back to the present-day home for Phase 5 (Ganesh Chaturthi celebrations & pandal preparations).
-              </span>
-            </p>
-
-            <div
-              style={{
-                display: 'flex',
-                gap: '16px',
-                justifyContent: 'center',
-                flexWrap: 'wrap',
-              }}
-            >
-              <button
-                onClick={() => {
-                  audioManager.playUIClick();
-                  onReturnHome();
-                }}
-                style={{
-                  backgroundColor: 'rgba(245, 176, 65, 0.35)',
-                  border: '1.5px solid #ffd700',
-                  borderRadius: '24px',
-                  color: '#ffffff',
-                  fontFamily: "'Marcellus', serif",
-                  fontSize: '15px',
-                  letterSpacing: '0.08em',
-                  padding: '12px 32px',
-                  cursor: 'pointer',
-                  boxShadow: '0 6px 20px rgba(245, 176, 65, 0.4)',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
-                onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-              >
-                Return to Dada in Living Room ⌂
-              </button>
-
-              <button
-                onClick={() => {
-                  audioManager.playUIClick();
-                  onReplaySearch();
-                }}
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.25)',
-                  borderRadius: '24px',
-                  color: '#faf4e8',
-                  fontFamily: "'Outfit', sans-serif",
-                  fontSize: '14px',
-                  letterSpacing: '0.04em',
-                  padding: '12px 26px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.16)')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)')}
-              >
-                ↺ Replay Elephant Search
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ─── SEAMLESS DISSOLVE OVERLAY (USED BETWEEN BEATS / SCENES) ─── */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundColor: '#070406',
+          opacity: isTransitioning ? 0.95 : 0,
+          transition: 'opacity 0.5s ease-in-out',
+          pointerEvents: 'none',
+          zIndex: 99,
+        }}
+      />
 
       <style>{`
-        @keyframes fadeIn {
-          0% { opacity: 0; }
-          100% { opacity: 1; }
+        @keyframes fadeInUp {
+          0% {
+            opacity: 0;
+            transform: translate(-50%, 10px);
+          }
+          100% {
+            opacity: 1;
+            transform: translate(-50%, 0);
+          }
         }
-        @keyframes spinAura {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+        @keyframes auraBreathe {
+          0% {
+            transform: scale(0.96) rotate(0deg);
+            opacity: 0.5;
+          }
+          100% {
+            transform: scale(1.06) rotate(15deg);
+            opacity: 0.85;
+          }
         }
-        @keyframes breathe {
-          0% { transform: scale(0.96); }
-          100% { transform: scale(1.04); }
+        @keyframes restingFloat {
+          0% {
+            transform: translateY(0px) scale(1);
+          }
+          100% {
+            transform: translateY(-8px) scale(1.02);
+          }
         }
-        @keyframes pulseGlow {
-          0% { transform: scale(0.9); opacity: 0.5; }
-          100% { transform: scale(1.15); opacity: 0.9; }
+        @keyframes subtlePromptPulse {
+          0% {
+            opacity: 0.55;
+          }
+          100% {
+            opacity: 0.92;
+          }
         }
-        @keyframes levitate {
-          0% { transform: translateY(0px); }
-          100% { transform: translateY(-12px); }
-        }
-        @keyframes zoomSlow {
-          0% { transform: scale(1.0); }
-          100% { transform: scale(1.08); }
+        @keyframes flashBloom {
+          0% {
+            opacity: 0.9;
+          }
+          100% {
+            opacity: 0;
+          }
         }
       `}</style>
     </div>

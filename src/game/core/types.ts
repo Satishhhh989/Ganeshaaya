@@ -29,6 +29,7 @@ export type PresentScenePhase =
   | 'FESTIVAL_PREPARATION'
   | 'GANESH_CHATURTHI_CELEBRATION'
   | 'FINAL_CINEMATIC'
+  | 'GAME_ARCADE'
   | 'GAME_COMPLETE';
 
 export type PandalTask =
@@ -58,6 +59,15 @@ export type GameDevState =
 export type ShivaStoryPhase =
   | 'SHIVA_SEQUENCE_READY'
   | 'SHIVA_INTRO'
+  | 'TRISHUL_AIMING'
+  | 'TRISHUL_THROWING'
+  | 'TRISHUL_MISS'
+  | 'TRISHUL_HIT'
+  | 'TRISHUL_IMPACT'
+  | 'SHIVA_REALIZES'
+  | 'SHIVA_AFTERMATH'
+  | 'SHIVA_DECISION'
+  | 'FOREST_TRANSITION'
   | 'SHIVA_GAMEPLAY'
   | 'SHIVA_APPROACH'
   | 'CONFRONTATION'
@@ -73,6 +83,17 @@ export type ShivaStoryPhase =
   | 'DIVINE_BLESSING'
   | 'RETURN_TO_PRESENT_READY';
 
+export type ForestTrackingPhase =
+  | 'FOREST_INTRO'
+  | 'FOREST_EXPLORE'
+  | 'CLUE_ONE'
+  | 'CLUE_TWO'
+  | 'CLUE_THREE'
+  | 'ELEPHANT_NEAR'
+  | 'ELEPHANT_APPROACH'
+  | 'ELEPHANT_CINEMATIC'
+  | 'RESTORATION_READY';
+
 export type SceneId = 
   | 'PRESENT_HOME'
   | 'MYTHOLOGY_CREATION'
@@ -85,7 +106,7 @@ export type SceneId =
 
 export interface DialogueLine {
   id: string;
-  speaker: 'Child' | 'Old Man' | 'Narrator' | 'Parvati' | 'Shiva' | 'Ganesha';
+  speaker: 'Child' | 'Old Man' | 'Narrator' | 'Parvati' | 'Shiva' | 'Ganesha' | 'Vinay' | 'Ajja' | 'Grandpa';
   text: string;
   hindiText?: string;
   // External audio file hook (e.g. '/assets/audio/voice/line_1.mp3')
@@ -133,4 +154,6 @@ export interface AudioSettings {
   musicVolume: number;
   sfxVolume: number;
   muted: boolean;
+  musicMuted?: boolean;
+  sfxMuted?: boolean;
 }

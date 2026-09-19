@@ -18,7 +18,7 @@ export function InteractionTrigger({
   id,
   name,
   worldPosition = [0, 0, 0],
-  radius = 2.6,
+  radius = 2.5,
   prompt = 'Talk',
   onInteract,
   showIndicator = true,
@@ -28,22 +28,27 @@ export function InteractionTrigger({
   const { activeInteraction } = useGameState();
   const isFocused = activeInteraction?.id === id;
 
+  const onInteractRef = useRef(onInteract);
+  onInteractRef.current = onInteract;
+
+  const [px, py, pz] = worldPosition;
+
   useEffect(() => {
     interactionManager.register({
       id,
       name,
-      position: worldPosition,
+      position: [px, py, pz],
       radius,
       prompt,
       actionKey: 'E',
-      onInteract,
+      onInteract: () => onInteractRef.current?.(),
       enabled: true,
     });
 
     return () => {
       interactionManager.unregister(id);
     };
-  }, [id, name, worldPosition, radius, prompt, onInteract]);
+  }, [id, name, px, py, pz, radius, prompt]);
 
   useFrame((_, delta) => {
     if (markerRef.current) {
@@ -57,12 +62,12 @@ export function InteractionTrigger({
   });
 
   return (
-    <group position={worldPosition}>
+    <group position={[px, py, pz]}>
       {showIndicator && (
         <group ref={markerRef} position={[0, 0.05, 0]}>
           {/* Subtle ground circle with warm golden accent */}
           <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[0.5, 0.58, 32]} />
+            <ringGeometry args={[0.45, 0.52, 32]} />
             <meshBasicMaterial
               color={isFocused ? '#f5b041' : '#df6920'}
               transparent

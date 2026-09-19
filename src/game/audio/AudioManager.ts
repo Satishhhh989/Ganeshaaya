@@ -13,6 +13,8 @@ export interface StoryAudioHooks {
 class AudioManager {
   private ctx: AudioContext | null = null;
   private isMuted: boolean = false;
+  private isMusicMuted: boolean = false;
+  private isSfxMuted: boolean = false;
   private masterGain: GainNode | null = null;
   private droneGain: GainNode | null = null;
   private isDronePlaying: boolean = false;
@@ -56,6 +58,38 @@ class AudioManager {
   toggleMute(): boolean {
     this.setMuted(!this.isMuted);
     return this.isMuted;
+  }
+
+  setMusicMuted(muted: boolean) {
+    this.isMusicMuted = muted;
+    if (this.droneGain && this.ctx) {
+      this.droneGain.gain.setValueAtTime(muted ? 0 : 0.45, this.ctx.currentTime);
+    }
+    if (this.currentBgmAudio) this.currentBgmAudio.muted = muted;
+    if (this.currentAmbientAudio) this.currentAmbientAudio.muted = muted;
+  }
+
+  toggleMusic(): boolean {
+    this.setMusicMuted(!this.isMusicMuted);
+    return this.isMusicMuted;
+  }
+
+  getMusicMuted(): boolean {
+    return this.isMusicMuted;
+  }
+
+  setSfxMuted(muted: boolean) {
+    this.isSfxMuted = muted;
+    if (this.currentSfxAudio) this.currentSfxAudio.muted = muted;
+  }
+
+  toggleSfx(): boolean {
+    this.setSfxMuted(!this.isSfxMuted);
+    return this.isSfxMuted;
+  }
+
+  getSfxMuted(): boolean {
+    return this.isSfxMuted;
   }
 
   // Smoothly adjust ambient/drone volume (e.g. decrease during transitions)
@@ -114,7 +148,7 @@ class AudioManager {
   // Temple bell / ghanti chime on interaction
   playTempleBell() {
     this.initContext();
-    if (!this.ctx || !this.masterGain || this.isMuted) return;
+    if (!this.ctx || !this.masterGain || this.isMuted || this.isSfxMuted) return;
 
     const now = this.ctx.currentTime;
     const partials = [
@@ -142,6 +176,29 @@ class AudioManager {
       osc.start(now);
       osc.stop(now + p.d);
     });
+  }
+
+  // Very subtle, delicate brass bell chime on menu hover
+  playHoverChime() {
+    this.initContext();
+    if (!this.ctx || !this.masterGain || this.isMuted || this.isSfxMuted) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1760, now); // High delicate glass/brass ping (A6)
+    osc.frequency.exponentialRampToValueAtTime(1560, now + 0.18);
+
+    gain.gain.setValueAtTime(0.035, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(now);
+    osc.stop(now + 0.22);
   }
 
   // Deep divine transition swell sound
@@ -240,10 +297,328 @@ class AudioManager {
     osc.stop(now + 4.0);
   }
 
+  // Powerful Trishul throw whoosh sound
+  playTrishulWhoosh() {
+    this.initContext();
+    if (!this.ctx || !this.masterGain || this.isMuted) return;
+
+    const now = this.ctx.currentTime;
+    // Swept oscillator for resonant air slice
+    const osc = this.ctx.createOscillator();
+    const oscGain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(80, now);
+    osc.frequency.exponentialRampToValueAtTime(320, now + 0.12);
+    osc.frequency.exponentialRampToValueAtTime(65, now + 0.55);
+
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(220, now);
+    filter.frequency.exponentialRampToValueAtTime(950, now + 0.15);
+    filter.frequency.exponentialRampToValueAtTime(140, now + 0.55);
+    filter.Q.value = 3.0;
+
+    oscGain.gain.setValueAtTime(0.001, now);
+    oscGain.gain.exponentialRampToValueAtTime(0.35, now + 0.12);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+    osc.connect(filter);
+    filter.connect(oscGain);
+    oscGain.connect(this.masterGain);
+
+    osc.start(now);
+    osc.stop(now + 0.65);
+
+    // Filtered noise burst for weapon friction
+    try {
+      const bufferSize = this.ctx.sampleRate * 0.4;
+      const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+      const whiteNoise = this.ctx.createBufferSource();
+      whiteNoise.buffer = noiseBuffer;
+
+      const noiseFilter = this.ctx.createBiquadFilter();
+      noiseFilter.type = 'bandpass';
+      noiseFilter.frequency.setValueAtTime(600, now);
+      noiseFilter.frequency.exponentialRampToValueAtTime(180, now + 0.35);
+      noiseFilter.Q.value = 1.8;
+
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.001, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.22, now + 0.08);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+
+      whiteNoise.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(this.masterGain);
+
+      whiteNoise.start(now);
+      whiteNoise.stop(now + 0.4);
+    } catch {
+      // Fallback safe
+    }
+  }
+
+  // Deep divine cinematic impact sound (non-violent, sacred sub-bass and celestial bloom)
+  playTrishulImpact() {
+    this.initContext();
+    if (!this.ctx || !this.masterGain || this.isMuted) return;
+
+    const now = this.ctx.currentTime;
+
+    // Sub-bass heavy thump
+    const subOsc = this.ctx.createOscillator();
+    const subGain = this.ctx.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(95, now);
+    subOsc.frequency.exponentialRampToValueAtTime(32, now + 0.7);
+
+    subGain.gain.setValueAtTime(0.5, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+    subOsc.connect(subGain);
+    subGain.connect(this.masterGain);
+    subOsc.start(now);
+    subOsc.stop(now + 1.3);
+
+    // Divine golden chime shimmer on contact
+    const chords = [523.25, 659.25, 783.99, 1046.5];
+    chords.forEach((freq, idx) => {
+      if (!this.ctx || !this.masterGain) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now);
+
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.exponentialRampToValueAtTime(0.12 / (idx + 1), now + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.0);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 2.1);
+    });
+  }
+
+  // Trishul striking mountain rock on miss
+  playTrishulMiss() {
+    this.initContext();
+    if (!this.ctx || !this.masterGain || this.isMuted) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(140, now);
+    osc.frequency.exponentialRampToValueAtTime(45, now + 0.28);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(350, now);
+
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(now);
+    osc.stop(now + 0.38);
+  }
+
+  // Subtle aim focus feedback chime
+  playAimFocus() {
+    this.initContext();
+    if (!this.ctx || !this.masterGain || this.isMuted) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(659.25, now);
+    osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.12);
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.exponentialRampToValueAtTime(0.04, now + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(now);
+    osc.stop(now + 0.25);
+  }
+
+  // Majestic sacred elephant trumpet & harmonic resonance call
+  playElephantCall(intensity: number = 0.5) {
+    this.initContext();
+    if (!this.ctx || !this.masterGain || this.isMuted || this.isSfxMuted) return;
+
+    const now = this.ctx.currentTime;
+    const duration = 1.6;
+
+    // Dual vocal-tract oscillators
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    osc1.type = 'sawtooth';
+    osc2.type = 'triangle';
+
+    // Trumpet pitch bend envelope
+    const baseFreq = 140;
+    const peakFreq = 340;
+    const endFreq = 160;
+
+    osc1.frequency.setValueAtTime(baseFreq, now);
+    osc1.frequency.exponentialRampToValueAtTime(peakFreq, now + 0.35);
+    osc1.frequency.exponentialRampToValueAtTime(endFreq, now + duration);
+
+    osc2.frequency.setValueAtTime(baseFreq * 0.98, now);
+    osc2.frequency.exponentialRampToValueAtTime(peakFreq * 0.98, now + 0.35);
+    osc2.frequency.exponentialRampToValueAtTime(endFreq * 0.98, now + duration);
+
+    // Resonant formant filter
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(450, now);
+    filter.frequency.linearRampToValueAtTime(820, now + 0.4);
+    filter.frequency.linearRampToValueAtTime(400, now + duration);
+    filter.Q.value = 2.8;
+
+    const vol = Math.min(0.35, Math.max(0.05, 0.22 * intensity));
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(vol, now + 0.25);
+    gain.gain.setValueAtTime(vol, now + 0.8);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+    osc1.connect(filter);
+    osc2.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + duration);
+    osc2.stop(now + duration);
+  }
+
+  // Subtle clue discovery chime
+  playClueDiscovered() {
+    this.initContext();
+    if (!this.ctx || !this.masterGain || this.isMuted || this.isSfxMuted) return;
+
+    const now = this.ctx.currentTime;
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc1.type = 'sine';
+    osc2.type = 'sine';
+
+    osc1.frequency.setValueAtTime(587.33, now); // D5
+    osc1.frequency.exponentialRampToValueAtTime(880.0, now + 0.15); // A5
+
+    osc2.frequency.setValueAtTime(880.0, now + 0.1);
+    osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.3); // D6
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.exponentialRampToValueAtTime(0.09, now + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
+
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + 0.75);
+    osc2.stop(now + 0.75);
+  }
+
+  // Deep, peaceful elephant breathing sound
+  playElephantBreath() {
+    this.initContext();
+    if (!this.ctx || !this.masterGain || this.isMuted || this.isSfxMuted) return;
+
+    const now = this.ctx.currentTime;
+    const bufferSize = this.ctx.sampleRate * 2.2;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * 0.5;
+    }
+
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(160, now);
+    filter.frequency.linearRampToValueAtTime(280, now + 1.1);
+    filter.frequency.linearRampToValueAtTime(140, now + 2.2);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.07, now + 0.8);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.2);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    noise.start(now);
+    noise.stop(now + 2.2);
+  }
+
+  // Subtle branch/leaf rustle
+  playFoliageRustle() {
+    this.initContext();
+    if (!this.ctx || !this.masterGain || this.isMuted || this.isSfxMuted) return;
+
+    const now = this.ctx.currentTime;
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.35);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * 0.3;
+    }
+
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1200, now);
+    filter.Q.value = 1.2;
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.exponentialRampToValueAtTime(0.04, now + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    noise.start(now);
+    noise.stop(now + 0.35);
+  }
+
   // Footstep sound (distinguishes running vs walking pacing and tone)
   playFootstep(isRunning: boolean = false) {
     this.initContext();
-    if (!this.ctx || !this.masterGain || this.isMuted) return;
+    if (!this.ctx || !this.masterGain || this.isMuted || this.isSfxMuted) return;
 
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
@@ -841,7 +1216,7 @@ class AudioManager {
   }
 
   // Safely play an external audio file with fallback
-  private playAudioFile(url: string, channel: 'voice' | 'bgm' | 'ambient' | 'sfx') {
+  private playAudioFile(url: string, channel: 'voice' | 'bgm' | 'ambient' | 'sfx', onEnded?: () => void) {
     if (this.isMuted || !url) return;
 
     try {
@@ -851,6 +1226,11 @@ class AudioManager {
 
       if (channel === 'voice') {
         this.stopVoiceLine();
+        if (onEnded) {
+          audio.onended = () => {
+            onEnded();
+          };
+        }
         this.currentVoiceAudio = audio;
       } else if (channel === 'bgm') {
         if (this.currentBgmAudio) {
@@ -1136,14 +1516,15 @@ class AudioManager {
     osc.stop(now + 0.045);
   }
 
-  playVoiceLine(audioUrl?: string) {
+  playVoiceLine(audioUrl?: string, onEnded?: () => void) {
     if (!audioUrl) return;
-    this.playNarrationAudio(audioUrl);
+    this.playAudioFile(audioUrl, 'voice', onEnded);
   }
 
   stopVoiceLine() {
     if (this.currentVoiceAudio) {
       try {
+        this.currentVoiceAudio.onended = null;
         this.currentVoiceAudio.pause();
         this.currentVoiceAudio = null;
       } catch {

@@ -5,29 +5,24 @@ import { audioManager } from '../audio/AudioManager';
 interface SceneTransitionInfo {
   title: string;
   subtitle: string;
-  icon: string;
 }
 
 const SCENE_INFO: Record<string, SceneTransitionInfo> = {
   MYTHOLOGY_CREATION: {
-    title: 'The Legend of Lord Ganesha',
-    subtitle: 'The Sacred Tale of Divine Creation',
-    icon: '🕉️',
+    title: 'The Sacred Memory',
+    subtitle: 'The Creation of Lord Ganesha',
   },
   SHIVA_SEQUENCE: {
-    title: 'Mount Kailash · The Threshold',
-    subtitle: 'Lord Shiva Returns to the Celestial Peaks',
-    icon: '🏔️',
+    title: 'Mount Kailash',
+    subtitle: 'The Celestial Peaks of Mahadev',
   },
   NIAT_COMPETITION: {
-    title: 'NIAT National Championship',
-    subtitle: 'Grand Auditorium · The Championship Presentation',
-    icon: '🏆',
+    title: 'National Innovation Arena',
+    subtitle: 'Vinay’s Championship Showcase',
   },
   PANDAL: {
     title: 'Ganesh Chaturthi Mahotsav',
-    subtitle: 'The Community Grounds · Dedicated to Vighnaharta',
-    icon: '🪔',
+    subtitle: 'Dedicated to Vighnaharta',
   },
 };
 
@@ -39,7 +34,7 @@ export function TransitionOverlay() {
   const [isTransitionActive, setIsTransitionActive] = useState(false);
   const prevSceneRef = useRef(currentScene);
 
-  // 1. Transition into Mythology
+  // 1. Transition into Mythology from Grandpa's Living Room Tale
   useEffect(() => {
     if (presentScenePhase !== 'TRANSITION_TO_MYTHOLOGY') return;
 
@@ -50,43 +45,56 @@ export function TransitionOverlay() {
     audioManager.playTransitionSwell();
 
     const glowTimer = setTimeout(() => {
-      setGoldenGlowOpacity(0.9);
+      setGoldenGlowOpacity(0.95);
     }, 400);
 
     const fadeTimer = setTimeout(() => {
       setFadeOpacity(1);
-    }, 1200);
+    }, 1100);
 
     const switchTimer = setTimeout(() => {
       gameStateStore.enterMythologyScene();
-    }, 2600);
+    }, 2400);
 
-    const revealTimer = setTimeout(() => {
+    setTimeout(() => {
       setGoldenGlowOpacity(0);
       setFadeOpacity(0);
-    }, 3000);
+    }, 3100);
 
-    const cleanupTimer = setTimeout(() => {
+    setTimeout(() => {
       setIsTransitionActive(false);
       setInfo(null);
-    }, 4200);
+    }, 4000);
 
     return () => {
       clearTimeout(glowTimer);
       clearTimeout(fadeTimer);
       clearTimeout(switchTimer);
-      clearTimeout(revealTimer);
-      clearTimeout(cleanupTimer);
+      // Notice: revealTimer and cleanupTimer are allowed to complete so that
+      // when enterMythologyScene() changes presentScenePhase to STORY_MODE,
+      // the screen fade-in and overlay dismiss are guaranteed to happen!
     };
   }, [presentScenePhase]);
 
-  // 2. Universal Scene Transitions (e.g. going to SHIVA_SEQUENCE, NIAT_COMPETITION, PANDAL)
+  // Safety fallback: if in MYTHOLOGY_CREATION story mode, guarantee overlay unmounts
+  useEffect(() => {
+    if (currentScene === 'MYTHOLOGY_CREATION' && isTransitionActive) {
+      const fallbackTimer = setTimeout(() => {
+        setGoldenGlowOpacity(0);
+        setFadeOpacity(0);
+        setIsTransitionActive(false);
+        setInfo(null);
+      }, 2000);
+      return () => clearTimeout(fallbackTimer);
+    }
+  }, [currentScene, isTransitionActive]);
+
+  // 2. Universal Scene Transitions
   useEffect(() => {
     if (currentScene === prevSceneRef.current) return;
     const oldScene = prevSceneRef.current;
     prevSceneRef.current = currentScene;
 
-    // Only show cinematic card for major distinct scene shifts
     if (
       (currentScene === 'SHIVA_SEQUENCE' ||
         currentScene === 'NIAT_COMPETITION' ||
@@ -136,89 +144,107 @@ export function TransitionOverlay() {
     <div
       onClick={handleSkip}
       style={{
-        position: 'absolute',
+        position: 'fixed',
         inset: 0,
         zIndex: 100,
         pointerEvents: fadeOpacity > 0.4 ? 'auto' : 'none',
-        cursor: 'pointer',
+        cursor: 'default',
+        userSelect: 'none',
       }}
     >
-      {/* Warm Golden Divine Halo Pulse */}
+      {/* Warm Divine Golden Bloom Pulse */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
           background:
-            'radial-gradient(circle at 50% 50%, rgba(255, 195, 56, 0.35) 0%, rgba(220, 106, 32, 0.2) 45%, transparent 75%)',
+            'radial-gradient(circle at 50% 50%, rgba(255, 205, 88, 0.4) 0%, rgba(190, 80, 24, 0.25) 45%, transparent 75%)',
           opacity: goldenGlowOpacity,
-          transition: 'opacity 1.0s ease-in-out',
+          transition: 'opacity 1.0s cubic-bezier(0.16, 1, 0.3, 1)',
           pointerEvents: 'none',
         }}
       />
 
-      {/* Deep Ethereal Dark Fade (Never blank white) */}
+      {/* Deep Ethereal Plum Fade (Never cold black) */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
-          backgroundColor: '#070503',
+          backgroundColor: '#120710',
           opacity: fadeOpacity,
-          transition: 'opacity 0.9s ease-in-out',
+          transition: 'opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1)',
           pointerEvents: 'none',
         }}
       />
 
-      {/* Contextual Sanskrit / Narrative Title Card */}
+      {/* Contextual Narrative Title Memory */}
       {info && (
         <div
           style={{
             position: 'absolute',
-            top: '48%',
+            top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
             textAlign: 'center',
-            color: '#f5ca75',
+            color: '#f8f4ec',
             opacity: goldenGlowOpacity,
-            transition: 'opacity 0.8s ease-in-out',
+            transition: 'opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
             pointerEvents: 'none',
             userSelect: 'none',
+            maxWidth: '680px',
+            width: '90%',
           }}
         >
-          <div style={{ fontSize: '32px', marginBottom: '12px' }}>{info.icon}</div>
+          {/* Subtle Decorative Diamond Accent */}
           <div
             style={{
-              fontFamily: "'Marcellus', 'Cinzel', serif",
-              fontSize: 'clamp(1.6rem, 4vw, 2.3rem)',
-              letterSpacing: '0.15em',
+              width: '6px',
+              height: '6px',
+              background: '#eed7a1',
+              transform: 'rotate(45deg)',
+              margin: '0 auto 16px',
+              boxShadow: '0 0 10px rgba(238, 215, 161, 0.8)',
+            }}
+          />
+
+          <div
+            style={{
+              fontFamily: "'Cinzel', 'Marcellus', serif",
+              fontSize: 'clamp(1.5rem, 3.8vw, 2.4rem)',
+              fontWeight: 700,
+              letterSpacing: '0.22em',
               textTransform: 'uppercase',
-              textShadow: '0 0 28px rgba(245, 202, 117, 0.85)',
+              textShadow: '0 2px 20px rgba(0, 0, 0, 0.95), 0 0 30px rgba(229, 192, 123, 0.5)',
               marginBottom: '10px',
+              color: '#ffffff',
             }}
           >
             {info.title}
           </div>
+
           <div
             style={{
-              fontFamily: "'Outfit', sans-serif",
-              fontSize: '14.5px',
-              letterSpacing: '0.18em',
-              color: 'rgba(250, 240, 220, 0.85)',
+              fontFamily: "'Marcellus', serif",
+              fontSize: 'clamp(0.95rem, 1.4vw, 1.15rem)',
+              letterSpacing: '0.14em',
+              color: '#eed7a1',
               textTransform: 'uppercase',
-              marginBottom: '22px',
+              opacity: 0.9,
+              textShadow: '0 2px 10px rgba(0, 0, 0, 0.85)',
             }}
           >
             {info.subtitle}
           </div>
+
           <div
             style={{
-              fontSize: '12px',
-              color: 'rgba(245, 202, 117, 0.75)',
-              fontFamily: "'Outfit', sans-serif",
-              letterSpacing: '0.12em',
+              width: '48px',
+              height: '1px',
+              background:
+                'linear-gradient(90deg, transparent, rgba(229, 192, 123, 0.75), transparent)',
+              margin: '18px auto 0',
             }}
-          >
-            [Click or Space to continue ➔]
-          </div>
+          />
         </div>
       )}
     </div>

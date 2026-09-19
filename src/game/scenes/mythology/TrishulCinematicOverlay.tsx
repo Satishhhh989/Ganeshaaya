@@ -7,8 +7,8 @@ interface TrishulCinematicOverlayProps {
   onAdvanceToAftermath: () => void;
   onAdvanceToRestoration: () => void;
   onAdvanceToSearch: () => void;
-  onReplaySequence: () => void;
-  onReturnHome: () => void;
+  onReplaySequence?: () => void;
+  onReturnHome?: () => void;
 }
 
 export function TrishulCinematicOverlay({
@@ -16,8 +16,6 @@ export function TrishulCinematicOverlay({
   onAdvanceToAftermath,
   onAdvanceToRestoration,
   onAdvanceToSearch,
-  onReplaySequence,
-  onReturnHome,
 }: TrishulCinematicOverlayProps) {
   // Flash and blackout state for the Trishul climax
   const [flashOpacity, setFlashOpacity] = useState(0);
@@ -243,179 +241,77 @@ export function TrishulCinematicOverlay({
         </div>
       )}
 
-      {/* ─── PHASE 3 COMPLETION MODAL: RESTORATION_READY ─── */}
+      {/* ─── PHASE 3 COMPLETION: PROMPT TO ENTER FOREST SEARCH ─── */}
       {phase === 'RESTORATION_READY' && (
         <div
+          onClick={() => {
+            audioManager.playUIClick();
+            onAdvanceToSearch();
+          }}
           style={{
             position: 'absolute',
-            inset: 0,
-            backgroundColor: 'rgba(6, 4, 3, 0.88)',
-            display: 'flex',
-            flexDirection: 'column',
+            bottom: 'clamp(32px, 8vh, 60px)',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'inline-flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 99,
-            color: '#faf4e8',
-            padding: '24px',
-            textAlign: 'center',
+            gap: '12px',
+            padding: '12px 28px',
+            borderRadius: '4px',
+            background: 'rgba(12, 10, 8, 0.85)',
+            border: '1.5px solid rgba(245, 176, 65, 0.7)',
+            boxShadow: '0 6px 28px rgba(0, 0, 0, 0.85), 0 0 20px rgba(245, 176, 65, 0.25)',
+            backdropFilter: 'blur(10px)',
+            cursor: 'pointer',
             userSelect: 'none',
-            backdropFilter: 'blur(16px)',
-            animation: 'modalReveal 0.8s ease-out',
+            zIndex: 99,
+            animation: 'subtitleFadeIn 0.5s ease-out',
+            transition: 'all 0.25s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateX(-50%) scale(1.05)';
+            e.currentTarget.style.background = 'rgba(20, 16, 12, 0.95)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateX(-50%) scale(1.0)';
+            e.currentTarget.style.background = 'rgba(12, 10, 8, 0.85)';
           }}
         >
-          <div
-            style={{
-              position: 'relative',
-              maxWidth: '720px',
-              backgroundColor: 'rgba(15, 12, 9, 0.94)',
-              border: '1.5px solid rgba(245, 176, 65, 0.6)',
-              borderRadius: '24px',
-              padding: '44px 48px',
-              boxShadow: '0 24px 70px rgba(0, 0, 0, 0.95), 0 0 35px rgba(245, 176, 65, 0.2)',
-            }}
-          >
-            {/* Sacred Lotus Icon Accent */}
-            <div
-              style={{
-                fontFamily: "'Marcellus', serif",
-                color: '#f5b041',
-                fontSize: '13px',
-                letterSpacing: '0.22em',
-                textTransform: 'uppercase',
-                marginBottom: '10px',
-              }}
-            >
-              Phase 3 Climax Completed
-            </div>
-
-            <h2
-              style={{
-                fontFamily: "'Marcellus', serif",
-                fontSize: '2.4rem',
-                color: '#ffffff',
-                margin: '0 0 18px 0',
-                letterSpacing: '0.06em',
-                textShadow: '0 2px 14px rgba(245, 176, 65, 0.5)',
-              }}
-            >
-              The Standstill at Kailash
-            </h2>
-
-            <p
-              style={{
-                fontFamily: "'Outfit', sans-serif",
-                fontSize: '1.16rem',
-                lineHeight: 1.7,
-                color: '#e4d8c8',
-                margin: '0 0 28px 0',
-              }}
-            >
-              Mahadev stands in solemn contemplation before the fallen guardian. Mata Parvati’s anguish will soon resound across the cosmos. The stage is set for the supreme promise of rejuvenation.
-              <br />
-              <br />
-              <span style={{ color: '#93c5fd', fontStyle: 'italic', display: 'block' }}>
-                System State Reached: <strong>RESTORATION_READY</strong>.
-              </span>
-              <span style={{ color: '#cbd5e1', fontSize: '0.98rem' }}>
-                Ready for Phase 4: The Sacred Restoration of Ganesha with the Elephant Head.
-              </span>
-            </p>
-
-            <div
-              style={{
-                display: 'flex',
-                gap: '16px',
-                justifyContent: 'center',
-                flexWrap: 'wrap',
-              }}
-            >
-              <button
-                onClick={() => {
-                  audioManager.playUIClick();
-                  onAdvanceToSearch();
-                }}
+              <span
                 style={{
-                  backgroundColor: 'rgba(245, 176, 65, 0.35)',
-                  border: '1.5px solid #ffd700',
-                  borderRadius: '24px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: '22px',
+                  height: '20px',
+                  padding: '0 6px',
+                  background: 'rgba(245, 176, 65, 0.25)',
+                  border: '1px solid rgba(245, 176, 65, 0.7)',
+                  borderRadius: '3px',
                   color: '#ffffff',
-                  fontFamily: "'Marcellus', serif",
-                  fontSize: '15px',
-                  letterSpacing: '0.08em',
-                  padding: '12px 32px',
-                  cursor: 'pointer',
-                  boxShadow: '0 6px 20px rgba(245, 176, 65, 0.45)',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(245, 176, 65, 0.55)';
-                  e.currentTarget.style.transform = 'scale(1.05)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(245, 176, 65, 0.35)';
-                  e.currentTarget.style.transform = 'scale(1)';
-                }}
-              >
-                Search the Forest for the Sacred Elephant ➔
-              </button>
-
-              <button
-                onClick={() => {
-                  audioManager.playUIClick();
-                  onReplaySequence();
-                }}
-                style={{
-                  backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                  border: '1px solid rgba(96, 165, 250, 0.6)',
-                  borderRadius: '24px',
-                  color: '#93c5fd',
-                  fontFamily: "'Marcellus', serif",
-                  fontSize: '14px',
-                  letterSpacing: '0.06em',
-                  padding: '12px 26px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.35)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
-                }}
-              >
-                ↺ Replay Shiva Gameplay
-              </button>
-
-              <button
-                onClick={() => {
-                  audioManager.playUIClick();
-                  onReturnHome();
-                }}
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.25)',
-                  borderRadius: '24px',
-                  color: '#faf4e8',
                   fontFamily: "'Outfit', sans-serif",
-                  fontSize: '14px',
+                  fontSize: '11px',
+                  fontWeight: 700,
                   letterSpacing: '0.04em',
-                  padding: '12px 26px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.16)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
                 }}
               >
-                Return to Living Room ⌂
-              </button>
+                E
+              </span>
+              <span
+                style={{
+                  fontFamily: "'Cinzel', 'Marcellus', serif",
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  letterSpacing: '0.18em',
+                  textTransform: 'uppercase',
+                  color: '#fef08a',
+                  textShadow: '0 1px 6px rgba(0, 0, 0, 0.95)',
+                }}
+              >
+                Search Forest for Celestial Elephant ➔
+              </span>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
       <style>{`
         @keyframes auraSurge {
@@ -425,10 +321,6 @@ export function TrishulCinematicOverlay({
         @keyframes subtitleFadeIn {
           0% { opacity: 0; transform: translate(-50%, 10px); }
           100% { opacity: 1; transform: translate(-50%, 0); }
-        }
-        @keyframes modalReveal {
-          0% { opacity: 0; transform: scale(0.96); }
-          100% { opacity: 1; transform: scale(1); }
         }
       `}</style>
     </div>

@@ -396,51 +396,53 @@ export function PandalStructure3D() {
           )}
         </group>
 
-        {/* Consecrated Ganesha Murti with Radiant Sunburst Prabhavali */}
-        <group position={[0, 1.35, -1.3]}>
-          <pointLight
-            ref={altarLightRef}
-            position={[0, 1.8, 1.2]}
-            intensity={2.6}
-            distance={8}
-            decay={1.8}
-            color="#ffb703"
-            castShadow
-          />
-          <mesh ref={prabhavaliAuraRef} position={[0, 0.55, -0.1]}>
-            <ringGeometry args={[0.7, 1.25, 32]} />
-            <meshStandardMaterial
+        {/* Consecrated Ganesha Murti with Radiant Sunburst Prabhavali (Installed upon ceremonial placement) */}
+        {ganeshaInstalled && (
+          <group position={[0, 1.35, -1.3]}>
+            <pointLight
+              ref={altarLightRef}
+              position={[0, 1.8, 1.2]}
+              intensity={2.8}
+              distance={8.5}
+              decay={1.8}
               color="#ffb703"
-              emissive="#ffb703"
-              emissiveIntensity={1.2}
-              side={THREE.DoubleSide}
+              castShadow
             />
-          </mesh>
-          <mesh position={[0, 0.55, -0.15]}>
-            <circleGeometry args={[1.35, 32]} />
-            <meshBasicMaterial color="#ffbe0b" transparent opacity={0.35} />
-          </mesh>
-          {/* High quality 2.5D Sacred Eco-Friendly Clay Ganesha Murti */}
-          <mesh position={[0, 0.52, 0.05]} castShadow receiveShadow>
-            <planeGeometry args={[1.5, 1.5]} />
-            <meshStandardMaterial
-              map={ganeshaTexture}
-              roughness={0.4}
-              metalness={0.15}
-              emissive="#ff9e00"
-              emissiveIntensity={0.18}
-              transparent
-            />
-          </mesh>
-          <mesh position={[0, 0.52, 0.01]}>
-            <boxGeometry args={[1.56, 1.56, 0.06]} />
-            <meshStandardMaterial color="#2d1500" metalness={0.3} roughness={0.6} />
-          </mesh>
-          <mesh position={[0, -0.18, 0.35]}>
-            <sphereGeometry args={[0.09, 8, 8]} />
-            <meshStandardMaterial color="#d00000" roughness={0.4} />
-          </mesh>
-        </group>
+            <mesh ref={prabhavaliAuraRef} position={[0, 0.55, -0.1]}>
+              <ringGeometry args={[0.7, 1.25, 32]} />
+              <meshStandardMaterial
+                color="#ffb703"
+                emissive="#ffb703"
+                emissiveIntensity={1.4}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
+            <mesh position={[0, 0.55, -0.15]}>
+              <circleGeometry args={[1.35, 32]} />
+              <meshBasicMaterial color="#ffbe0b" transparent opacity={0.35} />
+            </mesh>
+            {/* High quality 2.5D Sacred Eco-Friendly Clay Ganesha Murti */}
+            <mesh position={[0, 0.52, 0.05]} castShadow receiveShadow>
+              <planeGeometry args={[1.5, 1.5]} />
+              <meshStandardMaterial
+                map={ganeshaTexture}
+                roughness={0.4}
+                metalness={0.15}
+                emissive="#ff9e00"
+                emissiveIntensity={0.22}
+                transparent
+              />
+            </mesh>
+            <mesh position={[0, 0.52, 0.01]}>
+              <boxGeometry args={[1.56, 1.56, 0.06]} />
+              <meshStandardMaterial color="#2d1500" metalness={0.3} roughness={0.6} />
+            </mesh>
+            <mesh position={[0, -0.18, 0.35]}>
+              <sphereGeometry args={[0.09, 8, 8]} />
+              <meshStandardMaterial color="#d00000" roughness={0.4} />
+            </mesh>
+          </group>
+        )}
       </group>
     </group>
   );

@@ -9,23 +9,25 @@ export function PandalEnvironment() {
   const isNight = festivalTimeOfDay === 'NIGHT' || presentScenePhase === 'FINAL_CINEMATIC';
   const isMorning = festivalTimeOfDay === 'MORNING' || presentScenePhase === 'FESTIVAL_PREPARATION';
 
-  // Warm, balanced lighting to eliminate pitch-black darkness while keeping rich contrast
-  const ambientIntensity = isNight ? 0.45 : isMorning ? 0.95 : 0.82;
-  const ambientColor = isNight ? '#3a4468' : isMorning ? '#fff5ea' : '#ffe8d6';
+  const isBuilding = presentScenePhase === 'PANDAL_BUILDING' || presentScenePhase === 'PANDAL_COMPLETE';
+
+  // Warm, vibrant, bright afternoon sunlight for cozy festival preparation
+  const ambientIntensity = isNight ? 0.55 : isBuilding ? 1.15 : isMorning ? 1.05 : 0.95;
+  const ambientColor = isNight ? '#3a4468' : '#fffbeb';
 
   const dirLightPos: [number, number, number] = isMorning
     ? [-8, 22, 12]
     : isNight
     ? [10, 16, -10]
     : [-10, 20, 12];
-  const dirLightIntensity = isNight ? 0.6 : isMorning ? 1.7 : 1.45;
-  const dirLightColor = isNight ? '#90c0e8' : isMorning ? '#fff6e5' : '#ffb703';
+  const dirLightIntensity = isNight ? 0.75 : isBuilding ? 2.2 : isMorning ? 1.9 : 1.7;
+  const dirLightColor = isNight ? '#90c0e8' : '#fffbeb';
 
-  const hemiSky = isNight ? '#1e293b' : isMorning ? '#d8e8dc' : '#fed7aa';
-  const hemiGround = isNight ? '#0f172a' : isMorning ? '#78716c' : '#443026';
-  const hemiIntensity = isNight ? 0.45 : isMorning ? 0.9 : 0.75;
+  const hemiSky = isNight ? '#1e293b' : isMorning ? '#d8e8dc' : '#fef08a';
+  const hemiGround = isNight ? '#0f172a' : isMorning ? '#78716c' : '#713f12';
+  const hemiIntensity = isNight ? 0.5 : 0.85;
 
-  const streetLightIntensity = isNight ? 2.6 : isMorning ? 0.4 : 1.8;
+  const streetLightIntensity = isNight ? 2.6 : isMorning ? 0.6 : 1.6;
 
   return (
     <group name="Pandal_Courtyard_Environment">

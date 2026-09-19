@@ -83,9 +83,6 @@ export function StoryCanvas({
     if (scene.audio) {
       audioManager.playStoryAudioHooks(scene.audio);
     }
-    if (scene.narration?.audio) {
-      audioManager.playNarrationAudio(scene.narration.audio);
-    }
 
     // Trigger special scene sound effects
     if (scene.stateId === 'GANESHA_AWAKENING') {
@@ -98,7 +95,7 @@ export function StoryCanvas({
     }
   }, [scene]);
 
-  // Subtitle typewriter animation
+  // Subtitle typewriter & voice narration playback
   useEffect(() => {
     if (!scene) return;
 
@@ -106,6 +103,7 @@ export function StoryCanvas({
     setDisplayedNarration('');
     setIsTyping(true);
     let charIdx = 0;
+    let autoAdvanceTimer: number | null = null;
 
     if (typingTimerRef.current) {
       clearInterval(typingTimerRef.current);
@@ -129,13 +127,28 @@ export function StoryCanvas({
       }
     }, 24);
 
+    // Play narration voice line and listen for natural completion
+    if (scene.narration?.audio) {
+      audioManager.playVoiceLine(scene.narration.audio, () => {
+        // Voice line finished: auto-advance after a gentle natural pause (~750ms)
+        autoAdvanceTimer = window.setTimeout(() => {
+          if (scene.nextScene) {
+            onAdvanceState(scene.nextScene);
+          }
+        }, 750);
+      });
+    }
+
     return () => {
       audioManager.stopVoiceLine();
       if (typingTimerRef.current) {
         clearInterval(typingTimerRef.current);
       }
+      if (autoAdvanceTimer) {
+        clearTimeout(autoAdvanceTimer);
+      }
     };
-  }, [scene]);
+  }, [scene, onAdvanceState]);
 
   // Advance to next scene handler
   const handleAdvance = useCallback(() => {
@@ -151,6 +164,7 @@ export function StoryCanvas({
       setIsTyping(false);
     } else {
       audioManager.playUIClick();
+      audioManager.stopVoiceLine();
       if (scene.nextScene) {
         onAdvanceState(scene.nextScene);
       }

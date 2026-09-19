@@ -2,8 +2,10 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { gameStateStore } from './game/core/GameState';
+import { competitionCeremonyStore } from './game/scenes/competition/competitionState';
 
 (window as any).gameStateStore = gameStateStore;
+(window as any).competitionCeremonyStore = competitionCeremonyStore;
 
 const rootElement = document.getElementById('root');
 if (rootElement) {
