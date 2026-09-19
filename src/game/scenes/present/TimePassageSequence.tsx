@@ -312,61 +312,91 @@ export function TimePassageSequence() {
         />
       )}
 
-      {/* ─── NATURAL LAPTOP NOTIFICATION POPUP (DISCOVERY) ─── */}
+      {/* ─── NATURAL LAPTOP NOTIFICATION POPUP (DISCOVERY - ENLARGED & NIAT) ─── */}
       {presentScenePhase === 'COMPETITION_DISCOVERY' && (
         <div
           style={{
             position: 'absolute',
-            top: 'clamp(28px, 6vh, 48px)',
-            right: 'clamp(20px, 4vw, 48px)',
+            top: 'clamp(32px, 7vh, 60px)',
+            right: 'clamp(24px, 4.5vw, 64px)',
             zIndex: 96,
-            width: 'clamp(280px, 28vw, 340px)',
-            background: 'rgba(15, 23, 42, 0.94)',
-            backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(254, 240, 138, 0.45)',
-            borderRadius: '12px',
-            padding: '16px 18px',
-            boxShadow: '0 12px 32px rgba(0, 0, 0, 0.75), 0 0 24px rgba(251, 191, 36, 0.2)',
+            width: 'clamp(360px, 34vw, 460px)',
+            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 27, 46, 0.94) 100%)',
+            backdropFilter: 'blur(20px)',
+            border: '2px solid rgba(254, 240, 138, 0.65)',
+            borderRadius: '16px',
+            padding: '22px 26px',
+            boxShadow:
+              '0 20px 48px rgba(0, 0, 0, 0.88), 0 0 36px rgba(251, 191, 36, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
             animation: 'notificationSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
             pointerEvents: 'none',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-            <span style={{ fontSize: '15px' }}>🔔</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '20px' }}>🔔</span>
+              <span
+                style={{
+                  fontFamily: "'Outfit', sans-serif",
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  color: '#fef08a',
+                  letterSpacing: '0.16em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Laptop Notification
+              </span>
+            </div>
             <span
               style={{
                 fontFamily: "'Outfit', sans-serif",
-                fontSize: '10px',
-                fontWeight: 700,
-                color: '#fef08a',
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
+                fontSize: '11px',
+                color: 'rgba(255, 255, 255, 0.45)',
+                fontWeight: 600,
               }}
             >
-              Laptop Notification
+              Just now
             </span>
           </div>
           <div
             style={{
               fontFamily: "'Cinzel', 'Marcellus', serif",
-              fontSize: '13px',
+              fontSize: 'clamp(16px, 1.8vw, 19px)',
               fontWeight: 700,
               color: '#ffffff',
               letterSpacing: '0.04em',
-              marginBottom: '4px',
+              lineHeight: 1.35,
+              marginBottom: '10px',
+              textShadow: '0 2px 10px rgba(0,0,0,0.8)',
             }}
           >
-            NIIT Game Making Championship
+            NIAT Game Making Championship
           </div>
           <div
             style={{
-              fontFamily: "'Outfit', sans-serif",
-              fontSize: '12px',
-              color: '#ffd700',
-              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              background: 'rgba(254, 240, 138, 0.14)',
+              border: '1px solid rgba(254, 240, 138, 0.45)',
+              borderRadius: '8px',
+              padding: '6px 14px',
             }}
           >
-            Grand Prize: ₹15,000
+            <span style={{ fontSize: '15px' }}>🏆</span>
+            <span
+              style={{
+                fontFamily: "'Outfit', sans-serif",
+                fontSize: '14px',
+                color: '#ffd700',
+                fontWeight: 700,
+                letterSpacing: '0.04em',
+                textShadow: '0 0 12px rgba(251, 191, 36, 0.5)',
+              }}
+            >
+              Grand Prize: ₹15,000
+            </span>
           </div>
         </div>
       )}
