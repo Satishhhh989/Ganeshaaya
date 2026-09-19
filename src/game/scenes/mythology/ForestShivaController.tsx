@@ -107,7 +107,7 @@ export function ForestShivaController({
     };
   }, [isCinematic, isExamining]);
 
-  // 2. Mouse Look Listeners
+  // 2. Mouse Look Listeners (Supports 360° Free Look via Click-Drag or Pointer Lock)
   useEffect(() => {
     const canvas = gl.domElement;
 
@@ -130,10 +130,11 @@ export function ForestShivaController({
 
     const handleMouseMove = (e: MouseEvent) => {
       if (isCinematic) return;
-      const sensitivity = 0.0022;
+      const sensitivity = 0.0032;
+      // Allow look if pointer locked OR if left/right mouse button is held down (click-and-drag free look)
       if (isPointerLocked.current || e.buttons === 1 || e.buttons === 2) {
         yaw.current -= e.movementX * sensitivity;
-        pitch.current = Math.max(0.08, Math.min(0.52, pitch.current - e.movementY * sensitivity));
+        pitch.current = Math.max(0.05, Math.min(0.68, pitch.current - e.movementY * sensitivity));
       }
     };
 

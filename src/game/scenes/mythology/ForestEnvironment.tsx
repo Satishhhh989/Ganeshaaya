@@ -227,8 +227,8 @@ export function ForestEnvironment() {
         />
       </mesh>
 
-      {/* ─── PRIMARY COMPACTED EARTH & MOSS FOREST TRAIL (ONE OBVIOUS VISIBLE PATH) ─── */}
-      {/* 1. Main Path Ribbons: visually distinct, slightly lighter warm earthen tone */}
+      {/* ─── PRIMARY GLOWING SACRED TRAIL (GOLDEN LUMINOUS PATHWAY TO ELEPHANT) ─── */}
+      {/* 1. Base Earthen Trail Ribbons: compacted loam bed */}
       {trailSegments.ribbons.map((rib, idx) => (
         <mesh
           key={`ribbon-${idx}`}
@@ -238,49 +238,91 @@ export function ForestEnvironment() {
         >
           <planeGeometry args={[rib.width, rib.length]} />
           <meshStandardMaterial
-            color={idx % 2 === 0 ? '#453828' : '#3e3223'} // Warm packed mountain loam
-            roughness={0.85}
+            color={idx % 2 === 0 ? '#4a3c2c' : '#413526'}
+            roughness={0.82}
           />
         </mesh>
       ))}
 
-      {/* 2. Soft Earthen Trail Borders (Subtle mossy highlight flanking both edges) */}
+      {/* 2. Luminous Golden Glowing Center Streamer (The Glowing Path toward Elephant) */}
+      {trailSegments.ribbons.map((rib, idx) => (
+        <mesh
+          key={`glow-ribbon-${idx}`}
+          position={[rib.x, 0.008, rib.z]}
+          rotation={[-Math.PI / 2, 0, rib.rot]}
+        >
+          <planeGeometry args={[rib.width * 0.72, rib.length]} />
+          <meshStandardMaterial
+            color="#fbbf24"
+            emissive="#f59e0b"
+            emissiveIntensity={0.65}
+            transparent
+            opacity={0.52}
+            roughness={0.3}
+          />
+        </mesh>
+      ))}
+
+      {/* 3. Soft Earthen Trail Borders with subtle celestial moss glow */}
       {trailSegments.ribbons.map((rib, idx) => (
         <group key={`border-${idx}`} position={[rib.x, -0.01, rib.z]} rotation={[0, rib.rot, 0]}>
           {/* Left Path Edge */}
           <mesh position={[-rib.width * 0.48, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[0.45, rib.length]} />
-            <meshStandardMaterial color="#2d3d29" roughness={0.9} />
+            <planeGeometry args={[0.55, rib.length]} />
+            <meshStandardMaterial
+              color="#3a4f32"
+              emissive="#22c55e"
+              emissiveIntensity={0.12}
+              roughness={0.88}
+            />
           </mesh>
           {/* Right Path Edge */}
           <mesh position={[rib.width * 0.48, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[0.45, rib.length]} />
-            <meshStandardMaterial color="#2d3d29" roughness={0.9} />
+            <planeGeometry args={[0.55, rib.length]} />
+            <meshStandardMaterial
+              color="#3a4f32"
+              emissive="#22c55e"
+              emissiveIntensity={0.12}
+              roughness={0.88}
+            />
           </mesh>
         </group>
       ))}
 
-      {/* 3. Directional Sacred Elephant Tracks Pressed Along the Entire Primary Trail */}
+      {/* 4. Glowing Sacred Elephant Footprints Along the Trail */}
       {trailSegments.trailTracks.map((trk, idx) => (
         <group
           key={`trk-${idx}`}
-          position={[trk.x, 0.005, trk.z]}
+          position={[trk.x, 0.015, trk.z]}
           rotation={[-Math.PI / 2, 0, trk.rot]}
         >
           {/* Main Elephant Pad Impression */}
           <mesh receiveShadow>
-            <circleGeometry args={[0.36, 18]} />
-            <meshStandardMaterial color="#241a12" roughness={0.95} />
+            <circleGeometry args={[0.38, 18]} />
+            <meshStandardMaterial
+              color="#2a1f15"
+              emissive="#eab308"
+              emissiveIntensity={0.25}
+              roughness={0.9}
+            />
           </mesh>
-          {/* Disturbed earth rim */}
+          {/* Disturbed Earth Rim */}
           <mesh position={[0, 0, -0.005]}>
-            <ringGeometry args={[0.36, 0.46, 18]} />
-            <meshStandardMaterial color="#544332" roughness={0.88} />
+            <ringGeometry args={[0.38, 0.48, 18]} />
+            <meshStandardMaterial
+              color="#544332"
+              roughness={0.88}
+            />
           </mesh>
-          {/* Subtle Divine Prana Dust on Recent Tracks */}
+          {/* Radiant Golden Prana Pulse on Tracks */}
           <mesh position={[0, 0, 0.01]}>
-            <circleGeometry args={[0.22, 12]} />
-            <meshBasicMaterial color="#fef08a" transparent opacity={0.18} />
+            <circleGeometry args={[0.26, 14]} />
+            <meshBasicMaterial color="#fde047" transparent opacity={0.45} />
+          </mesh>
+          {/* Footprint Guide Ring */}
+          <mesh position={[0, 0, 0.012]}>
+            <ringGeometry args={[0.34, 0.42, 16]} />
+            <meshBasicMaterial color="#fbbf24" transparent opacity={0.65} />
           </mesh>
         </group>
       ))}
@@ -383,13 +425,13 @@ export function ForestEnvironment() {
                 side={THREE.DoubleSide}
               />
             </mesh>
-            {/* Wild Himalayan Mountain Flower */}
+            {/* Wild Himalayan Mountain Golden Flower */}
             <mesh position={[0.15, 0.2, 0]}>
               <sphereGeometry args={[0.07, 8, 8]} />
               <meshStandardMaterial
-                color={idx % 2 === 0 ? '#f59e0b' : '#60a5fa'}
-                emissive={idx % 2 === 0 ? '#b45309' : '#2563eb'}
-                emissiveIntensity={0.2}
+                color={idx % 2 === 0 ? '#f59e0b' : '#fbbf24'}
+                emissive={idx % 2 === 0 ? '#b45309' : '#d97706'}
+                emissiveIntensity={0.35}
               />
             </mesh>
           </group>
@@ -467,19 +509,24 @@ export function ForestEnvironment() {
         />
       </points>
 
-      {/* ─── SUBTLE WARM SUNLIGHT PATCHES DIRECTLY ALONG PRIMARY TRAIL ─── */}
+      {/* ─── CONTINUOUS GOLDEN GLOWING TRAIL LIGHTS (LEADING DIRECTLY TO ELEPHANT) ─── */}
       {[
-        { x: 0.6, z: 4.8 },   // Path start
-        { x: 1.6, z: 1.8 },   // Clue 1 bend
-        { x: -0.8, z: -4.5 }, // Clue 2 bend
-        { x: 0.7, z: -10.5 }, // Clue 3 threshold
+        { x: 0.0, z: 7.5 },   // Spawn path start
+        { x: 0.8, z: 4.8 },   // Path curve 1
+        { x: 1.8, z: 2.2 },   // Clue 1 Footprints
+        { x: 0.8, z: -1.2 },  // Trail link
+        { x: -1.0, z: -4.5 }, // Clue 2 Broken Cedar
+        { x: -0.2, z: -7.5 }, // Northbound trail
+        { x: 0.8, z: -10.8 }, // Clue 3 Threshold
+        { x: 0.2, z: -14.2 }, // Entrance to Clearing
+        { x: 0.0, z: -18.0 }, // Sacred Clearing & Elephant
       ].map((lightPos, idx) => (
         <pointLight
           key={`trail-light-${idx}`}
-          position={[lightPos.x, 1.4, lightPos.z]}
-          color="#fef08a"
-          intensity={0.65}
-          distance={5.0}
+          position={[lightPos.x, 1.2, lightPos.z]}
+          color="#fbbf24"
+          intensity={1.25}
+          distance={6.5}
           decay={2}
         />
       ))}

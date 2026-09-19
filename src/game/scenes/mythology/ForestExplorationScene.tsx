@@ -32,6 +32,8 @@ interface ForestTrackingState {
   isExamining: boolean;
   subtitleText: string | null;
   isNearElephant: boolean;
+  playerPos: [number, number, number];
+  distanceToElephant: number;
 }
 
 class ForestTrackingStore {
@@ -42,6 +44,8 @@ class ForestTrackingStore {
     isExamining: false,
     subtitleText: null,
     isNearElephant: false,
+    playerPos: [0, 0, 7.5],
+    distanceToElephant: 28,
   };
 
   private listeners = new Set<() => void>();
@@ -70,6 +74,8 @@ class ForestTrackingStore {
       isExamining: false,
       subtitleText: null,
       isNearElephant: false,
+      playerPos: [0, 0, 7.5],
+      distanceToElephant: 28,
     };
     this.listeners.forEach((l) => l());
   }
@@ -131,6 +137,11 @@ export function ForestExploration3D({
       const distToElephant = Math.sqrt(
         pos.x * pos.x + (pos.z - ELEPHANT_POSITION[2]) * (pos.z - ELEPHANT_POSITION[2])
       );
+
+      forestTrackingStore.setState({
+        playerPos: [pos.x, pos.y, pos.z],
+        distanceToElephant: Math.round(distToElephant),
+      });
 
       // Enter clearing detection (Z <= -14)
       // When player follows the clear forest path into the clearing, natural discovery triggers
@@ -273,6 +284,7 @@ export function ForestExplorationUI() {
     isExamining,
     subtitleText,
     isNearElephant,
+    distanceToElephant,
   } = useForestTracking();
 
   const [mistOpacity, setMistOpacity] = useState(0);
@@ -382,19 +394,20 @@ export function ForestExplorationUI() {
   // Find active clue prompt text
   const activeClue = nearbyClueId ? CLUES.find((c) => c.id === nearbyClueId) : null;
 
-  // Top objective string
-  const objectiveText =
+  // Top objective string: Always clear, prominent, and instructive
+  const objectiveTitle =
     trackingPhase === 'ELEPHANT_APPROACH'
-      ? 'Approach the Sacred Celestial Being'
+      ? 'APPROACH THE SACRED ELEPHANT'
       : trackingPhase === 'ELEPHANT_NEAR'
-      ? 'Step into the Sunlit Clearing'
-      : trackingPhase === 'CLUE_THREE'
-      ? 'Follow the Sacred Resonance to the Sunlit Clearing'
-      : trackingPhase === 'CLUE_TWO'
-      ? 'Trace the Broken Branches Deeper into the Grove'
-      : trackingPhase === 'CLUE_ONE'
-      ? 'Follow the Massive Tracks Through the Forest'
-      : 'Search the Ancient Grove for Signs of Life';
+      ? 'THE SACRED ELEPHANT IS NEAR'
+      : 'OBJECTIVE: FIND THE SACRED ELEPHANT';
+
+  const objectiveSubtitle =
+    trackingPhase === 'ELEPHANT_APPROACH'
+      ? 'Press [E] to commune with Sri Gajaraj'
+      : trackingPhase === 'ELEPHANT_NEAR'
+      ? 'Step into the sunlit clearing ahead'
+      : 'Follow the glowing golden path through the grove';
 
   return (
     <div
@@ -420,48 +433,152 @@ export function ForestExplorationUI() {
         }}
       />
 
-      {/* ─── MINIMAL TOP OBJECTIVE INDICATOR (ZERO CARDS, SLENDER PILL) ─── */}
+      {/* ─── PROMINENT TOP OBJECTIVE & WAYPOINT INDICATOR ─── */}
       {trackingPhase !== 'ELEPHANT_CINEMATIC' && trackingPhase !== 'RESTORATION_READY' && (
         <div
           data-ui="forest-objective"
           style={{
             position: 'absolute',
-            top: '28px',
+            top: '24px',
             left: '50%',
             transform: 'translateX(-50%)',
-            backgroundColor: 'rgba(10, 16, 12, 0.72)',
-            border: '1px solid rgba(229, 192, 123, 0.35)',
-            borderRadius: '24px',
-            padding: '8px 24px',
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
-            gap: '12px',
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.7)',
-            backdropFilter: 'blur(8px)',
+            gap: '6px',
+            zIndex: 90,
             animation: 'fadeInUp 0.6s ease-out',
           }}
         >
+          {/* Main Objective Header Badge */}
           <div
             style={{
-              width: '7px',
-              height: '7px',
-              borderRadius: '50%',
-              backgroundColor: '#fde047',
-              boxShadow: '0 0 8px #fde047',
-            }}
-          />
-          <span
-            style={{
-              fontFamily: "'Cinzel', 'Marcellus', serif",
-              fontSize: '11.5px',
-              fontWeight: 700,
-              color: '#f8fafc',
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
+              backgroundColor: 'rgba(10, 16, 12, 0.88)',
+              border: '1.5px solid rgba(254, 240, 138, 0.65)',
+              borderRadius: '24px',
+              padding: '8px 24px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.85), 0 0 20px rgba(251, 191, 36, 0.3)',
+              backdropFilter: 'blur(12px)',
             }}
           >
-            {objectiveText}
-          </span>
+            <div
+              style={{
+                width: '9px',
+                height: '9px',
+                borderRadius: '50%',
+                backgroundColor: '#fde047',
+                boxShadow: '0 0 10px #fde047, 0 0 16px #fbbf24',
+                animation: 'pulseGlow 2s ease-in-out infinite alternate',
+              }}
+            />
+            <span
+              style={{
+                fontFamily: "'Cinzel', 'Marcellus', serif",
+                fontSize: '13px',
+                fontWeight: 700,
+                color: '#ffffff',
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase',
+                textShadow: '0 1px 6px rgba(0, 0, 0, 0.9)',
+              }}
+            >
+              {objectiveTitle}
+            </span>
+            {distanceToElephant > 0 && (
+              <span
+                style={{
+                  fontFamily: "'Outfit', sans-serif",
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: '#fde047',
+                  background: 'rgba(254, 240, 138, 0.18)',
+                  padding: '2px 8px',
+                  borderRadius: '10px',
+                  letterSpacing: '0.04em',
+                }}
+              >
+                {distanceToElephant}m
+              </span>
+            )}
+          </div>
+
+          {/* Subtitle Hint: Glowing Trail Guidance */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '4px 14px',
+              borderRadius: '12px',
+              backgroundColor: 'rgba(5, 8, 6, 0.75)',
+              border: '1px solid rgba(254, 240, 138, 0.25)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            <span style={{ fontSize: '13px' }}>✨</span>
+            <span
+              style={{
+                fontFamily: "'Cinzel', 'Marcellus', serif",
+                fontSize: '11px',
+                fontWeight: 600,
+                color: '#fef08a',
+                letterSpacing: '0.08em',
+              }}
+            >
+              {objectiveSubtitle}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ─── 360° LOOK & CONTROLS HELPER BADGE ─── */}
+      {trackingPhase !== 'ELEPHANT_CINEMATIC' && trackingPhase !== 'RESTORATION_READY' && (
+        <div
+          data-ui="forest-controls-hint"
+          style={{
+            position: 'absolute',
+            bottom: '24px',
+            left: '24px',
+            zIndex: 88,
+            backgroundColor: 'rgba(10, 16, 12, 0.85)',
+            border: '1px solid rgba(254, 240, 138, 0.35)',
+            borderRadius: '10px',
+            padding: '10px 16px',
+            boxShadow: '0 6px 24px rgba(0, 0, 0, 0.8)',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '5px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '13px' }}>🔄</span>
+            <span
+              style={{
+                fontFamily: "'Cinzel', 'Marcellus', serif",
+                fontSize: '11px',
+                fontWeight: 700,
+                color: '#fef08a',
+                letterSpacing: '0.08em',
+              }}
+            >
+              MOUSE / DRAG · 360° VIEW
+            </span>
+          </div>
+          <div
+            style={{
+              fontFamily: "'Outfit', sans-serif",
+              fontSize: '11px',
+              color: 'rgba(255, 255, 255, 0.75)',
+              letterSpacing: '0.02em',
+            }}
+          >
+            WASD to Walk · Shift to Run · Look around in all directions
+          </div>
         </div>
       )}
 
