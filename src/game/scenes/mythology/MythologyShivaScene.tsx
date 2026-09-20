@@ -28,6 +28,7 @@ import { TrishulProjectile } from './TrishulProjectile';
 import { ForestExploration3D, ForestExplorationUI, forestTrackingStore } from './ForestExplorationScene';
 import { RestorationCinematic } from './RestorationCinematic';
 import { audioManager } from '../../audio/AudioManager';
+import { virtualInputStore } from '../../ui/mobile/virtualInputStore';
 
 // Shared sacred doorway target transform
 const GANESHA_POSITION: [number, number, number] = [0, 0, -8.0];
@@ -234,6 +235,20 @@ export function MythologyShiva3D() {
     gameStateStore.setShivaPhase('TRISHUL_THROWING');
   }, [internalPhase]);
 
+  // Mobile Touch Throw Trigger Listener
+  useEffect(() => {
+    if (internalPhase !== 'AIMING') return;
+    let lastTrigger = virtualInputStore.getState().throwTrigger;
+
+    return virtualInputStore.subscribe(() => {
+      const current = virtualInputStore.getState().throwTrigger;
+      if (current > lastTrigger) {
+        lastTrigger = current;
+        triggerThrow();
+      }
+    });
+  }, [internalPhase, triggerThrow]);
+
   // Telemetry callback receiving position from projectile in flight
   const handleProjectileTelemetry = useCallback((pos: THREE.Vector3, vel: THREE.Vector3) => {
     projectilePos.current.copy(pos);
@@ -361,6 +376,16 @@ export function MythologyShiva3D() {
 
     // ─── STAGE B: FIRST-PERSON AIMING (Smooth Lerp + Exact Central Raycast) ───
     else if (internalPhase === 'AIMING') {
+      // Mobile touch aim swipe integration
+      const touchDelta = virtualInputStore.consumeCameraDelta();
+      if (Math.abs(touchDelta.dx) > 0.001 || Math.abs(touchDelta.dy) > 0.001) {
+        const touchSensitivity = 0.0018;
+        targetYaw.current -= touchDelta.dx * touchSensitivity;
+        targetPitch.current -= touchDelta.dy * touchSensitivity;
+        targetYaw.current = THREE.MathUtils.clamp(targetYaw.current, -0.42, 0.42);
+        targetPitch.current = THREE.MathUtils.clamp(targetPitch.current, -0.16, 0.22);
+      }
+
       // Smooth camera interpolation for natural aim feel
       currentYaw.current = THREE.MathUtils.lerp(currentYaw.current, targetYaw.current, dt * 14.0);
       currentPitch.current = THREE.MathUtils.lerp(currentPitch.current, targetPitch.current, dt * 14.0);
@@ -877,7 +902,7 @@ export function MythologyShivaUI() {
               textTransform: 'uppercase',
             }}
           >
-            Aim with Mouse
+            {virtualInputStore.getState().isTouchDevice ? 'Drag Right Screen to Aim' : 'Aim with Mouse'}
           </span>
           <span style={{ color: 'rgba(238, 215, 161, 0.4)', fontSize: '10px' }}>•</span>
           <span
@@ -890,7 +915,7 @@ export function MythologyShivaUI() {
               textTransform: 'uppercase',
             }}
           >
-            Left Click to Throw
+            {virtualInputStore.getState().isTouchDevice ? 'Tap Throw Button' : 'Left Click to Throw'}
           </span>
         </div>
       )}

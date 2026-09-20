@@ -14,6 +14,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { ShivaCharacter } from '../../characters/ShivaCharacter';
 import { audioManager } from '../../audio/AudioManager';
+import { virtualInputStore } from '../../ui/mobile/virtualInputStore';
 
 interface KeyState {
   forward: boolean;
@@ -175,13 +176,20 @@ export function ForestShivaController({
       if (keys.current.right)    moveDir.add(camRight);
       if (keys.current.left)     moveDir.sub(camRight);
 
+      // Mobile touch virtual joystick input integration
+      const joy = virtualInputStore.getMoveVector();
+      if (Math.abs(joy.x) > 0.05 || Math.abs(joy.y) > 0.05) {
+        moveDir.addScaledVector(camForward, joy.y);
+        moveDir.addScaledVector(camRight, joy.x);
+      }
+
       const isMoving = moveDir.lengthSq() > 0.001;
       if (isMoving) {
         moveDir.normalize();
       }
 
       // In the clearing, movement is reverently capped to walk only
-      const running = !inClearing && keys.current.run && isMoving;
+      const running = !inClearing && (keys.current.run || joy.isRunning) && isMoving;
       isRunning.current = running;
 
       const walkSpeed = inClearing ? 1.6 : 2.2;
@@ -228,6 +236,14 @@ export function ForestShivaController({
     const shivaChest = pos.clone().add(new THREE.Vector3(0, 1.6, 0));
 
     if (!isCinematic) {
+      // Mobile touch camera look swipe integration
+      const touchDelta = virtualInputStore.consumeCameraDelta();
+      if (Math.abs(touchDelta.dx) > 0.001 || Math.abs(touchDelta.dy) > 0.001) {
+        const touchSensitivity = 0.0032;
+        yaw.current -= touchDelta.dx * touchSensitivity;
+        pitch.current = Math.max(0.05, Math.min(0.68, pitch.current - touchDelta.dy * touchSensitivity));
+      }
+
       // Normal Third-Person Exploration Follow Camera
       const cosP = Math.cos(pitch.current);
       const sinP = Math.sin(pitch.current);

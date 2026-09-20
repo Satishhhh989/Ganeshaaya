@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useGameState, gameStateStore } from '../../core/GameState';
 import { audioManager } from '../../audio/AudioManager';
+import { virtualInputStore } from '../mobile/virtualInputStore';
 
 export function GameHUD() {
   const { gameState, audioSettings, presentScenePhase } = useGameState();
@@ -220,7 +221,11 @@ export function GameHUD() {
             pointerEvents: 'none',
           }}
         >
-          <span>WASD to move · Shift to run</span>
+          <span>
+            {virtualInputStore.getState().isTouchDevice
+              ? 'Use Left Joystick to Move · Drag Right to Look'
+              : 'WASD to move · Shift to run'}
+          </span>
         </div>
       )}
     </div>

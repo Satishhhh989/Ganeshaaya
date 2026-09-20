@@ -21,6 +21,7 @@ import { LivingSacredElephant3D } from '../../characters/LivingSacredElephant3D'
 import { ForestClues3D, CLUES } from './ForestClues3D';
 import { ForestShivaController } from './ForestShivaController';
 import { audioManager } from '../../audio/AudioManager';
+import { virtualInputStore } from '../../ui/mobile/virtualInputStore';
 
 const ELEPHANT_POSITION: [number, number, number] = [0, 0, -20.5];
 
@@ -78,6 +79,71 @@ class ForestTrackingStore {
       distanceToElephant: 28,
     };
     this.listeners.forEach((l) => l());
+  }
+
+  triggerCommunion() {
+    if (this.state.trackingPhase === 'ELEPHANT_CINEMATIC' || this.state.trackingPhase === 'RESTORATION_READY') return;
+
+    audioManager.playTransitionSwell();
+    audioManager.playTempleBell();
+
+    this.setState({
+      trackingPhase: 'ELEPHANT_CINEMATIC',
+      subtitleText: '“Beyond the ancient trees, Shiva found a creature of great strength and wisdom.”',
+    });
+
+    setTimeout(() => {
+      this.setState({
+        subtitleText: '“In quiet understanding, the noble Gajaraj offered its sacred spirit for the child.”',
+      });
+      audioManager.playElephantBreath();
+    }, 3800);
+
+    setTimeout(() => {
+      audioManager.playDivineAwakeningPulse();
+      setTimeout(() => {
+        this.setState({ trackingPhase: 'RESTORATION_READY' });
+        gameStateStore.setShivaPhase('DIVINE_TRANSITION');
+      }, 1200);
+    }, 7200);
+  }
+
+  examineClue(clueId: string) {
+    if (this.state.isExamining) return;
+    const clue = CLUES.find((c) => c.id === clueId);
+    if (!clue) return;
+
+    audioManager.playClueDiscovered();
+
+    if (clue.id === 'CLUE_ONE') {
+      audioManager.playFoliageRustle();
+    } else if (clue.id === 'CLUE_TWO') {
+      setTimeout(() => audioManager.playElephantCall(0.35), 450);
+    } else if (clue.id === 'CLUE_THREE') {
+      setTimeout(() => audioManager.playElephantCall(0.75), 350);
+    }
+
+    const nextCompleted = new Set(this.state.completedClues);
+    nextCompleted.add(clue.id);
+
+    let nextPhase: ForestTrackingPhase = this.state.trackingPhase;
+    if (clue.id === 'CLUE_ONE') nextPhase = 'CLUE_ONE';
+    else if (clue.id === 'CLUE_TWO') nextPhase = 'CLUE_TWO';
+    else if (clue.id === 'CLUE_THREE') nextPhase = 'CLUE_THREE';
+
+    this.setState({
+      isExamining: true,
+      completedClues: nextCompleted,
+      subtitleText: clue.narration,
+      trackingPhase: nextPhase,
+    });
+
+    setTimeout(() => {
+      this.setState({
+        isExamining: false,
+        subtitleText: null,
+      });
+    }, 3800);
   }
 }
 
@@ -566,7 +632,7 @@ export function ForestExplorationUI() {
                 letterSpacing: '0.08em',
               }}
             >
-              MOUSE / DRAG · 360° VIEW
+              {virtualInputStore.getState().isTouchDevice ? 'SWIPE SCREEN · 360° VIEW' : 'MOUSE / DRAG · 360° VIEW'}
             </span>
           </div>
           <div
@@ -577,7 +643,9 @@ export function ForestExplorationUI() {
               letterSpacing: '0.02em',
             }}
           >
-            WASD to Walk · Shift to Run · Look around in all directions
+            {virtualInputStore.getState().isTouchDevice
+              ? 'Left Joystick to Walk · Drag right side to look'
+              : 'WASD to Walk · Shift to Run · Look around in all directions'}
           </div>
         </div>
       )}

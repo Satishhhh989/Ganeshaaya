@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameState, gameStateStore } from '../core/GameState';
 import { ASSET_CONFIG } from '../core/assetConfig';
+import { virtualInputStore } from '../ui/mobile/virtualInputStore';
 
 interface ThirdPersonCameraProps {
   targetPosition: THREE.Vector3;
@@ -564,6 +565,14 @@ export function ThirdPersonCamera({ targetPosition }: ThirdPersonCameraProps) {
       return;
     } else {
       finalCinematicTimer.current = 0;
+    }
+
+    // Mobile touch camera delta integration
+    const touchDelta = virtualInputStore.consumeCameraDelta();
+    if (Math.abs(touchDelta.dx) > 0.001 || Math.abs(touchDelta.dy) > 0.001) {
+      const touchSensitivity = 0.0035;
+      yaw.current += touchDelta.dx * touchSensitivity;
+      pitch.current = Math.max(0.05, Math.min(0.75, pitch.current + touchDelta.dy * touchSensitivity));
     }
 
     // ─── Normal Gameplay: Third-Person follow camera ───

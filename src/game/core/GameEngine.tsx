@@ -24,6 +24,8 @@ import { PandalRevealCinematic } from '../scenes/pandal/PandalRevealCinematic';
 import { FestivalArrivalModal } from '../scenes/pandal/FestivalArrivalModal';
 import { CelebrationHUD } from '../scenes/pandal/CelebrationHUD';
 import { FinalCelebrationCinematic } from '../scenes/pandal/FinalCelebrationCinematic';
+import { MobileOrientationOverlay } from '../ui/mobile/MobileOrientationOverlay';
+import { MobileControlsManager } from '../ui/mobile/MobileControlsManager';
 
 const GameArcade = lazy(() => import('../arcade/ui/GameArcade').then(m => ({ default: m.GameArcade })));
 
@@ -158,6 +160,13 @@ export function GameEngine() {
           <GameArcade onComplete={() => gameStateStore.exitArcade()} />
         </Suspense>
       )}
+
+      {/* ─── MOBILE LANDSCAPE SUPPORT ONLY ─── */}
+      {/* 1. Portrait orientation blocker with minimal cinematic rotate device indicator */}
+      <MobileOrientationOverlay />
+
+      {/* 2. Touch movement joystick, right swipe camera look, and contextual actions */}
+      <MobileControlsManager />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { gameStateStore, useGameState } from '../core/GameState';
 import { interactionManager } from '../interaction/useInteraction';
 import { audioManager } from '../audio/AudioManager';
 import { ASSET_CONFIG } from '../core/assetConfig';
+import { virtualInputStore } from '../ui/mobile/virtualInputStore';
 
 interface KeyState {
   forward: boolean;
@@ -156,11 +157,18 @@ export function PlayerController() {
       if (keys.current.right)    moveDir.add(camRight);
       if (keys.current.left)     moveDir.sub(camRight);
 
+      // Mobile touch virtual joystick input integration
+      const joy = virtualInputStore.getMoveVector();
+      if (Math.abs(joy.x) > 0.05 || Math.abs(joy.y) > 0.05) {
+        moveDir.addScaledVector(camForward, joy.y);
+        moveDir.addScaledVector(camRight, joy.x);
+      }
+
       if (moveDir.lengthSq() > 0.001) {
         moveDir.normalize();
       }
 
-      const running = keys.current.run && moveDir.lengthSq() > 0.001;
+      const running = (keys.current.run || joy.isRunning) && moveDir.lengthSq() > 0.001;
       isRunning.current = running;
 
       // Update physics
