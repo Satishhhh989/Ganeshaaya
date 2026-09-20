@@ -71,6 +71,7 @@ export function CinematicDialogue({
       setDisplayedText(text);
       setIsRevealing(false);
     } else {
+      audioManager.stopVoiceLine();
       audioManager.playUIClick();
       onNext();
     }

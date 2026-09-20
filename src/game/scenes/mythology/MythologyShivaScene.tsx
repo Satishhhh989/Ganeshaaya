@@ -646,10 +646,32 @@ export function MythologyShivaUI() {
   const handleAdvanceAftermath = useCallback(() => {
     if (shivaPhase === 'SHIVA_REALIZES') {
       audioManager.playUIClick();
+      audioManager.stopVoiceLine();
       gameStateStore.setShivaPhase('SHIVA_AFTERMATH');
     } else if (shivaPhase === 'SHIVA_AFTERMATH') {
       audioManager.playUIClick();
+      audioManager.stopVoiceLine();
       gameStateStore.setShivaPhase('SHIVA_DECISION');
+    }
+  }, [shivaPhase]);
+
+  // Synchronized audio for Shiva Trishul aftermath sequence (v1 -> v2)
+  useEffect(() => {
+    if (shivaPhase === 'SHIVA_REALIZES') {
+      audioManager.playVoiceLine('/assets/audio/shiva%20trishul/v1.mp3', () => {
+        // When v1 ends, advance cleanly to SHIVA_AFTERMATH
+        gameStateStore.setShivaPhase('SHIVA_AFTERMATH');
+      });
+    } else if (shivaPhase === 'SHIVA_AFTERMATH') {
+      audioManager.playVoiceLine('/assets/audio/shiva%20trishul/v2.mp3', () => {
+        // When v2 ends, advance cleanly to SHIVA_DECISION
+        gameStateStore.setShivaPhase('SHIVA_DECISION');
+      });
+    } else {
+      // If moving out of aftermath, ensure voice audio is cleaned up
+      if (shivaPhase === 'SHIVA_DECISION' || shivaPhase === 'SHIVA_SEARCH') {
+        audioManager.stopVoiceLine();
+      }
     }
   }, [shivaPhase]);
 

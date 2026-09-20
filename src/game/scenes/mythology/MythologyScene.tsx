@@ -17,6 +17,7 @@ export function MythologyScene() {
 
   const handleSkip = () => {
     audioManager.playUIClick();
+    audioManager.stopVoiceLine();
     setInternalState('SHIVA_SEQUENCE_READY');
     gameStateStore.setStoryState('SHIVA_SEQUENCE_READY');
   };

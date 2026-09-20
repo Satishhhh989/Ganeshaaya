@@ -1516,9 +1516,70 @@ class AudioManager {
     osc.stop(now + 0.045);
   }
 
-  playVoiceLine(audioUrl?: string, onEnded?: () => void) {
-    if (!audioUrl) return;
-    this.playAudioFile(audioUrl, 'voice', onEnded);
+  private currentVoiceUrl: string | null = null;
+
+  /**
+   * Play a voice line with natural audio.ended callback.
+   * Ensures single source of truth, cancels prior playback cleanly,
+   * prevents duplicate playback across React re-renders, and logs dev warnings if missing.
+   */
+  playVoiceLine(audioUrl?: string, onEnded?: () => void): HTMLAudioElement | null {
+    if (!audioUrl) return null;
+
+    // Deduplication guard: if this exact voice clip is already playing and active, don't restart it
+    if (this.currentVoiceAudio && this.currentVoiceUrl === audioUrl && !this.currentVoiceAudio.paused && !this.currentVoiceAudio.ended) {
+      return this.currentVoiceAudio;
+    }
+
+    this.stopVoiceLine();
+    this.currentVoiceUrl = audioUrl;
+
+    try {
+      const audio = new Audio(audioUrl);
+      audio.volume = this.masterGain ? this.masterGain.gain.value : 0.85;
+      audio.muted = this.isMuted;
+
+      let hasEnded = false;
+      const handleEnded = () => {
+        if (hasEnded) return;
+        hasEnded = true;
+        audio.onended = null;
+        if (this.currentVoiceAudio === audio) {
+          this.currentVoiceAudio = null;
+          this.currentVoiceUrl = null;
+        }
+        if (onEnded) {
+          onEnded();
+        }
+      };
+
+      audio.onended = handleEnded;
+
+      audio.onerror = () => {
+        console.warn(`[AudioManager] Voice audio failed to load: ${audioUrl}`);
+        if (this.currentVoiceAudio === audio) {
+          this.currentVoiceAudio = null;
+          this.currentVoiceUrl = null;
+        }
+      };
+
+      this.currentVoiceAudio = audio;
+
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          // Check if abort was intentional due to rapid transition
+          if (err.name !== 'AbortError') {
+            console.warn(`[AudioManager] Playback prevented for ${audioUrl}:`, err);
+          }
+        });
+      }
+
+      return audio;
+    } catch (err) {
+      console.warn(`[AudioManager] Error initializing audio for ${audioUrl}:`, err);
+      return null;
+    }
   }
 
   stopVoiceLine() {
@@ -1526,11 +1587,17 @@ class AudioManager {
       try {
         this.currentVoiceAudio.onended = null;
         this.currentVoiceAudio.pause();
-        this.currentVoiceAudio = null;
+        this.currentVoiceAudio.currentTime = 0;
       } catch {
         // Ignore
       }
+      this.currentVoiceAudio = null;
+      this.currentVoiceUrl = null;
     }
+  }
+
+  getCurrentVoiceUrl(): string | null {
+    return this.currentVoiceUrl;
   }
 }
 

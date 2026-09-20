@@ -414,23 +414,24 @@ export function ForestExplorationUI() {
       subtitleText: '“Beyond the ancient trees, Shiva found a creature of great strength and wisdom.”',
     });
 
-    setTimeout(() => {
+    // Play Elephant Scene V1, and when it finishes, advance to V2
+    audioManager.playVoiceLine('/assets/audio/elephant%20scene/v1.mp3', () => {
       forestTrackingStore.setState({
         subtitleText: '“In quiet understanding, the noble Gajaraj offered its sacred spirit for the child.”',
       });
       audioManager.playElephantBreath();
-    }, 3800);
 
-    // Mist transition into Restoration scene at 7.2s
-    setTimeout(() => {
-      setMistOpacity(1);
-      audioManager.playDivineAwakeningPulse();
+      // Play Elephant Scene V2, and when it finishes, transition cleanly to Restoration
+      audioManager.playVoiceLine('/assets/audio/elephant%20scene/v2.mp3', () => {
+        setMistOpacity(1);
+        audioManager.playDivineAwakeningPulse();
 
-      setTimeout(() => {
-        forestTrackingStore.setState({ trackingPhase: 'RESTORATION_READY' });
-        gameStateStore.setShivaPhase('DIVINE_TRANSITION');
-      }, 1200);
-    }, 7200);
+        setTimeout(() => {
+          forestTrackingStore.setState({ trackingPhase: 'RESTORATION_READY' });
+          gameStateStore.setShivaPhase('DIVINE_TRANSITION');
+        }, 1200);
+      });
+    });
   }, [trackingPhase]);
 
   // Keyboard shortcut listener: E, Space, Enter
@@ -445,6 +446,7 @@ export function ForestExplorationUI() {
           handleExamineClue();
         } else if (subtitleText) {
           // Skip subtitle early
+          audioManager.stopVoiceLine();
           forestTrackingStore.setState({
             subtitleText: null,
             isExamining: false,

@@ -3,6 +3,7 @@ import type { ShivaStoryPhase } from '../../core/types';
 import { STORY_ASSETS } from '../../story/storyAssets';
 import { StoryParticles } from '../../story/StoryParticles';
 import { audioManager } from '../../audio/AudioManager';
+import { AUDIO_SCENE_MAP } from '../../audio/audioSceneMap';
 
 export interface RestorationCinematicProps {
   phase: ShivaStoryPhase;
@@ -18,6 +19,7 @@ interface StoryBeatData {
   chapter: string;
   lines: string[];
   particleType: 'golden_prana' | 'lotus_drift';
+  audioFile?: string;
 }
 
 const CINEMATIC_BEATS: Record<string, StoryBeatData> = {
@@ -25,21 +27,25 @@ const CINEMATIC_BEATS: Record<string, StoryBeatData> = {
     chapter: 'THE AWAKENING',
     lines: ['Cosmic prana flowed through the sacred form, and Ganesha breathed once more.'],
     particleType: 'golden_prana',
+    audioFile: AUDIO_SCENE_MAP.HEAD_JOIN[0].url, // v1
   },
   DIVINE_RESTORATION: {
     chapter: 'THE AWAKENING',
     lines: ['Cosmic prana flowed through the sacred form, and Ganesha breathed once more.'],
     particleType: 'golden_prana',
+    audioFile: AUDIO_SCENE_MAP.HEAD_JOIN[0].url, // v1
   },
   GANESHA_DIVINE_AWAKENING: {
     chapter: 'THE AWAKENING',
     lines: ['Ganesha opened his gentle eyes, restored to life.'],
     particleType: 'golden_prana',
+    audioFile: AUDIO_SCENE_MAP.HEAD_JOIN[1].url, // v2
   },
   FAMILY_REUNION: {
     chapter: 'THE REUNION',
     lines: ['Parvati embraced her beloved son — sorrow dissolving into boundless joy.'],
     particleType: 'lotus_drift',
+    audioFile: AUDIO_SCENE_MAP.HEAD_JOIN[2].url, // v3
   },
   DIVINE_BLESSING: {
     chapter: 'PRATHAMA PUJYA',
@@ -47,6 +53,7 @@ const CINEMATIC_BEATS: Record<string, StoryBeatData> = {
       'Shiva blessed Ganesha and declared that he would be worshipped first before every new beginning.',
     ],
     particleType: 'lotus_drift',
+    audioFile: AUDIO_SCENE_MAP.HEAD_JOIN[3].url, // v4
   },
   RETURN_TO_PRESENT_READY: {
     chapter: 'PRATHAMA PUJYA',
@@ -54,6 +61,7 @@ const CINEMATIC_BEATS: Record<string, StoryBeatData> = {
       'Shiva blessed Ganesha and declared that he would be worshipped first before every new beginning.',
     ],
     particleType: 'golden_prana',
+    audioFile: AUDIO_SCENE_MAP.HEAD_JOIN[3].url, // v4
   },
 };
 
@@ -105,7 +113,7 @@ export function RestorationCinematic({
     setTextAnimKey((prev) => prev + 1);
   }, [phase]);
 
-  // Audio orchestration & cinematic soundscape
+  // Audio orchestration & synchronized voice playback
   useEffect(() => {
     if (!isCinematicActive) return;
 
@@ -224,6 +232,29 @@ export function RestorationCinematic({
     }
   }, [phase, subBeatIndex, isTransitioning, onAdvance, onReturnHome]);
 
+  // Play corresponding head join voice file and automatically advance on audio completion
+  useEffect(() => {
+    if (!isCinematicActive) return;
+
+    const beatData = CINEMATIC_BEATS[phase];
+    if (beatData?.audioFile) {
+      let advanceTimer: number | null = null;
+      audioManager.playVoiceLine(beatData.audioFile, () => {
+        // Natural brief pause (~800ms) after audio finishes before advancing
+        advanceTimer = window.setTimeout(() => {
+          handleAdvance();
+        }, 800);
+      });
+
+      return () => {
+        audioManager.stopVoiceLine();
+        if (advanceTimer) {
+          window.clearTimeout(advanceTimer);
+        }
+      };
+    }
+  }, [phase, isCinematicActive, handleAdvance]);
+
   // Keyboard navigation listener: Space, Enter, or KeyE to continue; Escape to skip
   useEffect(() => {
     if (!isCinematicActive) return;
@@ -240,6 +271,7 @@ export function RestorationCinematic({
         handleAdvance();
       } else if (e.code === 'Escape') {
         e.preventDefault();
+        audioManager.stopVoiceLine();
         onReturnHome();
       }
     };
@@ -565,6 +597,7 @@ export function RestorationCinematic({
       <div
         onClick={(e) => {
           e.stopPropagation();
+          audioManager.stopVoiceLine();
           onReturnHome();
         }}
         style={{

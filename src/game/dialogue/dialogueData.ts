@@ -136,6 +136,7 @@ export const RETURN_HOME_DIALOGUE: DialogueSequence = {
       cameraEvent: 'child_close',
       animation: 'curious',
       audioCue: 'child_excited',
+      audioFile: '/assets/audio/back%20to%20room/vinay%20/v1.mp3',
     },
     {
       id: 'return_2',
@@ -145,6 +146,7 @@ export const RETURN_HOME_DIALOGUE: DialogueSequence = {
       cameraEvent: 'old_man_close',
       animation: 'talk',
       audioCue: 'dada_warm',
+      audioFile: '/assets/audio/back%20to%20room/ajja/v1.mp3',
     },
     {
       id: 'return_3',
@@ -154,6 +156,7 @@ export const RETURN_HOME_DIALOGUE: DialogueSequence = {
       cameraEvent: 'child_close',
       animation: 'nod',
       audioCue: 'child_excited',
+      audioFile: '/assets/audio/back%20to%20room/vinay%20/v2.mp3',
     },
     {
       id: 'return_4',
@@ -163,6 +166,7 @@ export const RETURN_HOME_DIALOGUE: DialogueSequence = {
       cameraEvent: 'two_shot',
       animation: 'talk',
       audioCue: 'dada_warm',
+      audioFile: '/assets/audio/back%20to%20room/ajja/v2.mp3',
     },
   ],
 };

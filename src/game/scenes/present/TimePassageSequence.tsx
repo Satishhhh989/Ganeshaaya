@@ -169,6 +169,7 @@ export function TimePassageSequence() {
   // Skip directly to game creation
   const handleSkip = useCallback(() => {
     audioManager.playUIClick();
+    audioManager.stopVoiceLine();
     gameStateStore.advancePresentPhase('GAME_DEVELOPMENT');
   }, []);
 
