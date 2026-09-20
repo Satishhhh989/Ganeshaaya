@@ -92,20 +92,31 @@ class ForestTrackingStore {
       subtitleText: '“Beyond the ancient trees, Shiva found a creature of great strength and wisdom.”',
     });
 
-    setTimeout(() => {
+    let hasTransitioned = false;
+    const executeRestorationTransition = () => {
+      if (hasTransitioned) return;
+      hasTransitioned = true;
+      audioManager.playDivineAwakeningPulse();
+      this.setState({ trackingPhase: 'RESTORATION_READY' });
+      gameStateStore.setShivaPhase('DIVINE_TRANSITION');
+    };
+
+    // Play Elephant Scene V1, followed by V2, then transition to Restoration
+    audioManager.playVoiceLine('/assets/audio/elephant%20scene/v1.mp3', () => {
       this.setState({
         subtitleText: '“In quiet understanding, the noble Gajaraj offered its sacred spirit for the child.”',
       });
       audioManager.playElephantBreath();
-    }, 3800);
 
+      audioManager.playVoiceLine('/assets/audio/elephant%20scene/v2.mp3', () => {
+        setTimeout(executeRestorationTransition, 900);
+      });
+    });
+
+    // Guaranteed watchdog timer (14s max duration) ensures transition NEVER gets stuck
     setTimeout(() => {
-      audioManager.playDivineAwakeningPulse();
-      setTimeout(() => {
-        this.setState({ trackingPhase: 'RESTORATION_READY' });
-        gameStateStore.setShivaPhase('DIVINE_TRANSITION');
-      }, 1200);
-    }, 7200);
+      executeRestorationTransition();
+    }, 14000);
   }
 
   examineClue(clueId: string) {
@@ -402,10 +413,29 @@ export function ForestExplorationUI() {
     }, 3800);
   }, [nearbyClueId, isExamining, completedClues, trackingPhase]);
 
+  // Ref to track and prevent duplicate restoration transitions
+  const hasTransitionedRef = useRef(false);
+
+  // Transition to Head Join / Restoration Scene
+  const advanceToRestoration = useCallback(() => {
+    if (hasTransitionedRef.current) return;
+    hasTransitionedRef.current = true;
+
+    audioManager.stopVoiceLine();
+    audioManager.playDivineAwakeningPulse();
+    setMistOpacity(1);
+
+    setTimeout(() => {
+      forestTrackingStore.setState({ trackingPhase: 'RESTORATION_READY' });
+      gameStateStore.setShivaPhase('DIVINE_TRANSITION');
+    }, 1000);
+  }, []);
+
   // Handle Triggering Sacred Elephant Communion
   const handleTriggerCommunion = useCallback(() => {
     if (trackingPhase === 'ELEPHANT_CINEMATIC' || trackingPhase === 'RESTORATION_READY') return;
 
+    hasTransitionedRef.current = false;
     audioManager.playTransitionSwell();
     audioManager.playTempleBell();
 
@@ -416,6 +446,8 @@ export function ForestExplorationUI() {
 
     // Play Elephant Scene V1, and when it finishes, advance to V2
     audioManager.playVoiceLine('/assets/audio/elephant%20scene/v1.mp3', () => {
+      if (hasTransitionedRef.current) return;
+
       forestTrackingStore.setState({
         subtitleText: '“In quiet understanding, the noble Gajaraj offered its sacred spirit for the child.”',
       });
@@ -423,29 +455,32 @@ export function ForestExplorationUI() {
 
       // Play Elephant Scene V2, and when it finishes, transition cleanly to Restoration
       audioManager.playVoiceLine('/assets/audio/elephant%20scene/v2.mp3', () => {
-        setMistOpacity(1);
-        audioManager.playDivineAwakeningPulse();
-
-        setTimeout(() => {
-          forestTrackingStore.setState({ trackingPhase: 'RESTORATION_READY' });
-          gameStateStore.setShivaPhase('DIVINE_TRANSITION');
-        }, 1200);
+        advanceToRestoration();
       });
     });
-  }, [trackingPhase]);
+
+    // Safety watchdog: ensures the scene NEVER gets stuck waiting indefinitely
+    setTimeout(() => {
+      advanceToRestoration();
+    }, 14000);
+  }, [trackingPhase, advanceToRestoration]);
 
   // Keyboard shortcut listener: E, Space, Enter
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'KeyE' || e.code === 'Space' || e.code === 'Enter') {
-        if (isNearElephant && trackingPhase !== 'ELEPHANT_CINEMATIC' && trackingPhase !== 'RESTORATION_READY') {
+        if (trackingPhase === 'ELEPHANT_CINEMATIC') {
+          // In elephant cinematic: user pressing E/Space/Enter advances straight to restoration
+          e.preventDefault();
+          advanceToRestoration();
+        } else if (isNearElephant && trackingPhase !== 'RESTORATION_READY') {
           e.preventDefault();
           handleTriggerCommunion();
         } else if (nearbyClueId && !isExamining) {
           e.preventDefault();
           handleExamineClue();
         } else if (subtitleText) {
-          // Skip subtitle early
+          // Skip clue subtitle early
           audioManager.stopVoiceLine();
           forestTrackingStore.setState({
             subtitleText: null,
@@ -457,7 +492,16 @@ export function ForestExplorationUI() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isNearElephant, nearbyClueId, isExamining, subtitleText, trackingPhase, handleTriggerCommunion, handleExamineClue]);
+  }, [
+    isNearElephant,
+    nearbyClueId,
+    isExamining,
+    subtitleText,
+    trackingPhase,
+    handleTriggerCommunion,
+    handleExamineClue,
+    advanceToRestoration,
+  ]);
 
   // Find active clue prompt text
   const activeClue = nearbyClueId ? CLUES.find((c) => c.id === nearbyClueId) : null;
@@ -787,6 +831,53 @@ export function ForestExplorationUI() {
             }}
           >
             Commune with Sacred Gajaraj ➔
+          </span>
+        </div>
+      )}
+
+      {/* ─── ELEPHANT CINEMATIC SKIP / ADVANCE PROMPT ─── */}
+      {trackingPhase === 'ELEPHANT_CINEMATIC' && (
+        <div
+          data-ui="elephant-cinematic-skip"
+          onClick={advanceToRestoration}
+          style={{
+            position: 'absolute',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 99,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 18px',
+            borderRadius: '20px',
+            background: 'rgba(10, 16, 12, 0.75)',
+            border: '1px solid rgba(254, 240, 138, 0.45)',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.8)',
+            backdropFilter: 'blur(8px)',
+            pointerEvents: 'auto',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = '#fef08a';
+            e.currentTarget.style.transform = 'scale(1.04)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'rgba(254, 240, 138, 0.45)';
+            e.currentTarget.style.transform = 'scale(1.0)';
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "'Cinzel', 'Marcellus', serif",
+              fontSize: '11px',
+              fontWeight: 700,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              color: '#fef08a',
+            }}
+          >
+            CONTINUE →
           </span>
         </div>
       )}
