@@ -2,6 +2,8 @@
  * Zero-dependency Web Audio API Engine
  * Produces ambient Indian Tanpura drone, temple bell resonance, footsteps, speech cues,
  * and audio hooks for scene background music, narration, and sound effects.
+ *
+ * Made with ❤️ by Satish (https://github.com/Satishhhh989)
  */
 
 export interface StoryAudioHooks {

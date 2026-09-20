@@ -1,3 +1,8 @@
+/**
+ * GameState - Central reactive state container for Vinayak.
+ * Made with ❤️ by Satish (https://github.com/Satishhhh989)
+ */
+
 import { useSyncExternalStore } from 'react';
 import type {
   GameStateType,

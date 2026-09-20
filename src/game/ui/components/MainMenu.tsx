@@ -1,3 +1,8 @@
+/**
+ * MainMenu - Opening cinematic title screen & menu experience.
+ * Made with ❤️ by Satish (https://github.com/Satishhhh989)
+ */
+
 import { useState, useEffect, useRef } from 'react';
 import { gameStateStore, useGameState } from '../../core/GameState';
 import { audioManager } from '../../audio/AudioManager';

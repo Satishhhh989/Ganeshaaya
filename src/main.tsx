@@ -1,3 +1,9 @@
+/**
+ * VINAYAK: The First Prayer
+ * An Interactive 3D Devotional Experience
+ * Made with ❤️ by Satish (https://github.com/Satishhhh989)
+ */
+
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';

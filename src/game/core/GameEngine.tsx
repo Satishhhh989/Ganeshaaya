@@ -1,3 +1,8 @@
+/**
+ * GameEngine - Core 3D orchestrator & scene lifecycle coordinator.
+ * Made with ❤️ by Satish (https://github.com/Satishhhh989)
+ */
+
 import { Suspense, useEffect, lazy } from 'react';
 import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
