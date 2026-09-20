@@ -6,7 +6,7 @@ import { AmbientParticles } from './AmbientParticles';
 export function MainMenu() {
   const { audioSettings } = useGameState();
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [activeModal, setActiveModal] = useState<'none' | 'settings' | 'credits'>('none');
+  const [activeModal, setActiveModal] = useState<'none' | 'settings' | 'creators'>('none');
   const [masterVolume, setMasterVolume] = useState(audioSettings.masterVolume ?? 0.8);
   const [musicVolume, setMusicVolume] = useState(audioSettings.musicVolume ?? 0.7);
   const [isMuted, setIsMuted] = useState(audioSettings.muted ?? false);
@@ -676,9 +676,9 @@ export function MainMenu() {
                 }}
               />
 
-              {/* CREDITS */}
+              {/* CREATORS */}
               <button
-                onClick={() => setActiveModal('credits')}
+                onClick={() => setActiveModal('creators')}
                 onMouseEnter={handleHoverSecondary}
                 style={{
                   background: 'none',
@@ -706,7 +706,7 @@ export function MainMenu() {
                     e.currentTarget.style.letterSpacing = '0.24em';
                   }}
                 >
-                  CREDITS
+                  CREATORS
                 </span>
               </button>
 
@@ -756,6 +756,25 @@ export function MainMenu() {
                   GAME ARCADE
                 </span>
               </button>
+            </div>
+
+            {/* SUBTLE DEVELOPER SIGNATURE TAGLINE */}
+            <div
+              style={{
+                marginTop: '12px',
+                fontFamily: "'Outfit', 'Marcellus', serif",
+                fontSize: '11px',
+                fontWeight: 400,
+                color: 'rgba(250, 238, 219, 0.38)',
+                letterSpacing: '0.14em',
+                textTransform: 'none',
+                pointerEvents: 'none',
+                userSelect: 'none',
+                opacity: entranceStage >= 4 ? 1 : 0,
+                transition: 'opacity 1.2s ease 0.2s',
+              }}
+            >
+              Built with love by NIATians
             </div>
           </div>
         </div>
@@ -901,8 +920,8 @@ export function MainMenu() {
           </div>
         )}
 
-        {/* CREDITS MODAL */}
-        {activeModal === 'credits' && (
+        {/* CREATORS MODAL */}
+        {activeModal === 'creators' && (
           <div
             style={{
               position: 'fixed',
@@ -912,46 +931,50 @@ export function MainMenu() {
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: 'rgba(12, 6, 10, 0.85)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              padding: '24px',
+              backdropFilter: 'blur(14px)',
+              WebkitBackdropFilter: 'blur(14px)',
+              padding: '20px',
             }}
             onClick={() => setActiveModal('none')}
           >
             <div
               style={{
                 width: '100%',
-                maxWidth: '480px',
-                background: 'linear-gradient(180deg, rgba(38, 16, 29, 0.95) 0%, rgba(20, 9, 16, 0.98) 100%)',
+                maxWidth: '440px',
+                background: 'linear-gradient(180deg, rgba(34, 15, 26, 0.96) 0%, rgba(18, 8, 14, 0.98) 100%)',
                 border: '1px solid rgba(247, 212, 134, 0.35)',
-                boxShadow: '0 16px 48px rgba(0, 0, 0, 0.85), 0 0 24px rgba(247, 212, 134, 0.15)',
-                borderRadius: '2px',
-                padding: '36px',
+                boxShadow: '0 16px 48px rgba(0, 0, 0, 0.88), 0 0 28px rgba(247, 212, 134, 0.14)',
+                borderRadius: '4px',
+                padding: '30px 34px',
+                animation: 'fadeInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Header */}
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  marginBottom: '20px',
+                  marginBottom: '22px',
                   borderBottom: '1px solid rgba(247, 212, 134, 0.18)',
-                  paddingBottom: '14px',
+                  paddingBottom: '12px',
                 }}
               >
-                <span
-                  style={{
-                    fontFamily: "'Cinzel', 'Marcellus', serif",
-                    fontSize: '17px',
-                    fontWeight: 700,
-                    letterSpacing: '0.14em',
-                    color: '#ffffff',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  CREDITS
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span
+                    style={{
+                      fontFamily: "'Cinzel', 'Marcellus', serif",
+                      fontSize: '15px',
+                      fontWeight: 700,
+                      letterSpacing: '0.22em',
+                      color: '#ffffff',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    CREATORS
+                  </span>
+                </div>
 
                 <button
                   onClick={() => setActiveModal('none')}
@@ -961,9 +984,14 @@ export function MainMenu() {
                     cursor: 'pointer',
                     color: 'rgba(250, 238, 219, 0.65)',
                     padding: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'color 0.2s ease',
                   }}
                   onMouseEnter={(e) => (e.currentTarget.style.color = '#ffd580')}
                   onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(250, 238, 219, 0.65)')}
+                  aria-label="Close"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <line x1="18" y1="6" x2="6" y2="18" />
@@ -972,23 +1000,177 @@ export function MainMenu() {
                 </button>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'center' }}>
-                <div style={{ fontFamily: "'Cinzel', 'Marcellus', serif", fontSize: '18px', fontWeight: 700, color: '#ffd580' }}>
-                  VINAYAK: The First Prayer
+              {/* Creators Content */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Team Name */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span
+                    style={{
+                      fontFamily: "'Marcellus', serif",
+                      fontSize: '10.5px',
+                      letterSpacing: '0.24em',
+                      color: 'rgba(247, 212, 134, 0.65)',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    TEAM
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: "'Cinzel', 'Marcellus', serif",
+                      fontSize: '20px',
+                      fontWeight: 700,
+                      letterSpacing: '0.12em',
+                      color: '#ffd580',
+                      textShadow: '0 0 12px rgba(255, 213, 128, 0.35)',
+                    }}
+                  >
+                    Mooor.janaaa
+                  </span>
                 </div>
-                <p
+
+                {/* Subtle Divider */}
+                <div
                   style={{
-                    fontFamily: "'Outfit', sans-serif",
-                    fontSize: '13px',
-                    lineHeight: 1.6,
-                    color: 'rgba(250, 238, 219, 0.8)',
-                    margin: 0,
+                    height: '1px',
+                    width: '100%',
+                    background: 'linear-gradient(90deg, rgba(247, 212, 134, 0.25), transparent)',
+                  }}
+                />
+
+                {/* Team Members */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <span
+                    style={{
+                      fontFamily: "'Marcellus', serif",
+                      fontSize: '10.5px',
+                      letterSpacing: '0.24em',
+                      color: 'rgba(250, 238, 219, 0.45)',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    MEMBERS
+                  </span>
+
+                  {/* Member 1: Satish with GitHub link */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '8px 12px',
+                      borderRadius: '4px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(247, 212, 134, 0.12)',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: "'Marcellus', serif",
+                        fontSize: '15px',
+                        color: '#ffffff',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      Satish
+                    </span>
+
+                    <a
+                      href="https://github.com/Satishhhh989"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontFamily: "'Outfit', sans-serif",
+                        fontSize: '11.5px',
+                        fontWeight: 600,
+                        color: '#ffd580',
+                        textDecoration: 'none',
+                        letterSpacing: '0.04em',
+                        padding: '4px 10px',
+                        borderRadius: '12px',
+                        background: 'rgba(247, 212, 134, 0.12)',
+                        border: '1px solid rgba(247, 212, 134, 0.35)',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(247, 212, 134, 0.24)';
+                        e.currentTarget.style.color = '#ffffff';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(247, 212, 134, 0.12)';
+                        e.currentTarget.style.color = '#ffd580';
+                      }}
+                    >
+                      <span>GitHub</span>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                        <line x1="7" y1="17" x2="17" y2="7" />
+                        <polyline points="7 7 17 7 17 17" />
+                      </svg>
+                    </a>
+                  </div>
+
+                  {/* Member 2: Deval Gowda */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '8px 12px',
+                      borderRadius: '4px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(247, 212, 134, 0.12)',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: "'Marcellus', serif",
+                        fontSize: '15px',
+                        color: '#ffffff',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      Deval Gowda
+                    </span>
+                  </div>
+
+                  {/* Member 3: Bhuvan Prasad */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '8px 12px',
+                      borderRadius: '4px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(247, 212, 134, 0.12)',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: "'Marcellus', serif",
+                        fontSize: '15px',
+                        color: '#ffffff',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      Bhuvan Prasad
+                    </span>
+                  </div>
+                </div>
+
+                {/* Footnote */}
+                <div
+                  style={{
+                    fontSize: '11px',
+                    fontFamily: "'Marcellus', serif",
+                    color: 'rgba(250, 238, 219, 0.42)',
+                    letterSpacing: '0.14em',
+                    textAlign: 'center',
+                    marginTop: '4px',
                   }}
                 >
-                  A story of devotion, memory, and the bond between generations. Crafted for the NIAT competition and inspired by the sacred spirit of Ganesh Chaturthi.
-                </p>
-                <div style={{ fontSize: '11px', fontFamily: "'Marcellus', serif", color: 'rgba(250, 238, 219, 0.45)', letterSpacing: '0.18em' }}>
-                  ॥ गणपति बप्पा मोरया ॥
+                  ॥ श्री गणेशाय नमः ॥
                 </div>
               </div>
             </div>
